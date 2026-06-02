@@ -4,7 +4,7 @@
   "type": "module",
   "bin": { "flowpilot-connector": "src/index.js" },
   "scripts": {
-    "dev": "node src/index.js",
+    "dev": "node src/index.js flowpilot-connector",
     "start": "node src/index.js"
   },
   "dependencies": {
