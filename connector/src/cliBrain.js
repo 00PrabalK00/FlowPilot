@@ -2,7 +2,7 @@
 // The CLI runs its own agent loop and controls Node-RED via the flowpilot MCP tools.
 // Prompt is always sent via stdin (never an arg) -> no shell injection.
 import { spawn, spawnSync } from 'node:child_process';
-import { writeFileSync, mkdtempSync, unlinkSync } from 'node:fs';
+import { mkdirSync, writeFileSync, mkdtempSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -27,27 +27,57 @@ const OPERATOR_BRIEFING = [
   '   the flows by its label/name and use its id. Inject nodes have no failure output — interpret intent',
   '   (e.g. "if left fails connect to E-STOP" = wire/route so a fault path triggers the E-STOP function).',
   '3. To change a flow: build the updated nodes, flow_create_draft, flow_validate_draft, flow_diff, then',
-  '   nodered_deploy_patch (which asks the user for approval). Prefer minimal single-tab patches.',
+  '   nodered_deploy_patch with the draftId returned by flow_create_draft (it asks the user for approval).',
+  '   Prefer minimal single-tab patches.',
   '4. Be concise. Explain what you changed and the runtime impact.'
 ].join('\n');
 
 export async function runCli(cli, prompt, config = {}, emit = () => {}) {
   if (!prompt || !prompt.trim()) return { ok: false, text: '(empty prompt)' };
   const cmd = CLI_CMD[cli] || config.cliCommand || 'claude'; // per-CLI map wins over global override
+  const operatorPrompt = `${OPERATOR_BRIEFING}\n\nUser request:\n${prompt}`;
+  const mcpEnv = {
+    FLOWPILOT_BACKEND: config.backendHttp || 'http://127.0.0.1:8787',
+    FLOWPILOT_ROLE: config.cliRole || 'maintainer',
+    FLOWPILOT_RUNTIME_MODE: config.runtimeMode || 'design'
+  };
 
   const model = config.cliModel;
-  let args, parse = 'text';
+  let args, parse = 'text', stdinText = operatorPrompt, cwd = ROOT, extraEnv = {};
   if (cli === 'codex-cli') {
-    args = model ? ['exec', '--model', model, '-'] : ['exec', '-'];  // MCP from ~/.codex/config.toml
+    args = [
+      ...codexMcpConfigArgs(mcpEnv),
+      'exec',
+      '--dangerously-bypass-approvals-and-sandbox',
+      ...(model ? ['--model', model] : []),
+      '-'
+    ];
   } else if (cli === 'gemini-cli') {
-    args = model ? ['-m', model, '-p'] : ['-p'];                     // MCP from ~/.gemini/settings.json
+    const tmp = mkdtempSync(join(tmpdir(), 'flowpilot-gemini-'));
+    const geminiDir = join(tmp, '.gemini');
+    mkdirSync(geminiDir, { recursive: true });
+    writeFileSync(join(geminiDir, 'settings.json'), JSON.stringify({
+      mcpServers: {
+        flowpilot: {
+          command: 'node',
+          args: [MCP_SERVER],
+          env: mcpEnv,
+          trust: true
+        }
+      }
+    }, null, 2));
+    cwd = tmp;
+    stdinText = null;
+    args = [
+      ...(model ? ['--model', model] : []),
+      '--skip-trust',
+      '--allowed-mcp-server-names', 'flowpilot',
+      '--include-directories', ROOT,
+      '--prompt', operatorPrompt
+    ];
   } else {
     // Claude Code: inline MCP config; stream-json for live progress.
-    const cfg = { mcpServers: { flowpilot: { command: 'node', args: [MCP_SERVER], env: {
-      FLOWPILOT_BACKEND: config.backendHttp || 'http://127.0.0.1:8787',
-      FLOWPILOT_ROLE: config.cliRole || 'maintainer',
-      FLOWPILOT_RUNTIME_MODE: config.runtimeMode || 'design'
-    } } } };
+    const cfg = { mcpServers: { flowpilot: { command: 'node', args: [MCP_SERVER], env: mcpEnv } } };
     const tmp = mkdtempSync(join(tmpdir(), 'flowpilot-'));
     const cfgPath = join(tmp, 'mcp.json');
     writeFileSync(cfgPath, JSON.stringify(cfg));
@@ -70,7 +100,7 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
 
   return new Promise((resolve) => {
     let out = '', err = '', buf = '', resultText = null, isErr = false, sessionId = null;
-    const child = spawn(cmd, args, { cwd: ROOT, shell: IS_WIN });
+    const child = spawn(cmd, args, { cwd, shell: false, env: { ...process.env, ...extraEnv } });
     const killer = setTimeout(() => child.kill(), config.cliTimeoutMs || 280000);
 
     child.stdout.on('data', (d) => {
@@ -93,9 +123,20 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
       if (parse === 'stream') return resolve({ ok: !isErr && code === 0, text: resultText || out.trim() || err.trim() || `exited ${code}`, sessionId });
       resolve({ ok: code === 0, text: out.trim() || err.trim() || `${cmd} exited ${code}` });
     });
-    child.stdin.write(prompt);
+    if (stdinText) child.stdin.write(stdinText);
     child.stdin.end();
   });
+}
+
+function codexMcpConfigArgs(env) {
+  const tomlString = (s) => JSON.stringify(String(s));
+  const tomlArray = (items) => `[${items.map(tomlString).join(', ')}]`;
+  const tomlInlineTable = (obj) => `{ ${Object.entries(obj).map(([k, v]) => `${k} = ${tomlString(v)}`).join(', ')} }`;
+  return [
+    '-c', `mcp_servers.flowpilot.command=${tomlString('node')}`,
+    '-c', `mcp_servers.flowpilot.args=${tomlArray([MCP_SERVER])}`,
+    '-c', `mcp_servers.flowpilot.env=${tomlInlineTable(env)}`
+  ];
 }
 
 const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Update']);
@@ -123,7 +164,7 @@ export function cliCheck(cli, config = {}) {
   const cmd = CLI_CMD[cli] || config.cliCommand || cli; // per-CLI map wins over global override
   return new Promise((resolve) => {
     let out = '';
-    const child = spawn(cmd, ['--version'], { shell: IS_WIN });
+    const child = spawn(cmd, ['--version'], { shell: false });
     const killer = setTimeout(() => { child.kill(); resolve({ ok: false, error: 'timeout' }); }, 8000);
     child.stdout.on('data', (d) => { out += d; });
     child.stderr.on('data', (d) => { out += d; });
@@ -135,7 +176,7 @@ export function cliCheck(cli, config = {}) {
 // Revert a file the agent edited, via git (tracked -> checkout HEAD; untracked -> delete).
 export function restoreFile(filePath) {
   const dir = dirname(filePath);
-  const run = (args) => { const r = spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8', shell: IS_WIN }); return { code: r.status, out: (r.stdout || '') + (r.stderr || '') }; };
+  const run = (args) => { const r = spawnSync('git', ['-C', dir, ...args], { encoding: 'utf8', shell: false }); return { code: r.status, out: (r.stdout || '') + (r.stderr || '') }; };
   const top = run(['rev-parse', '--show-toplevel']);
   if (top.code !== 0) return { ok: false, error: 'not a git repo — cannot auto-revert this file' };
   const tracked = run(['ls-files', '--error-unmatch', filePath]).code === 0;

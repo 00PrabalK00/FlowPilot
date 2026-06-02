@@ -14,7 +14,7 @@ const CORE_TYPES = new Set([
 const DANGEROUS_TYPES = new Set(['exec', 'file', 'tcp in', 'tcp out', 'tcp request', 'udp in', 'udp out', 'http request', 'websocket in', 'websocket out']);
 
 export function validateFlow(flow, opts = {}) {
-  const nodes = Array.isArray(flow) ? flow : (flow.flows || []);
+  const nodes = Array.isArray(flow) ? flow : (Array.isArray(flow?.flows) ? flow.flows : []);
   const installedTypes = opts.installedTypes ? new Set(opts.installedTypes) : null;
   const testMessages = opts.testMessages || [{ payload: 1 }];
 
@@ -33,14 +33,19 @@ export function validateFlow(flow, opts = {}) {
 function pass1_schema(nodes) {
   const issues = [];
   const ids = new Set();
-  const tabIds = new Set(nodes.filter(n => n.type === 'tab' || n.type === 'subflow').map(n => n.id));
-  for (const n of nodes) {
+  const tabIds = new Set(nodes.filter(n => n && typeof n === 'object' && (n.type === 'tab' || n.type === 'subflow')).map(n => n.id));
+  for (const [idx, n] of nodes.entries()) {
+    if (!n || typeof n !== 'object' || Array.isArray(n)) {
+      issues.push(err('invalid_node', `entry ${idx} is not a Node-RED node object`));
+      continue;
+    }
     if (!n.id) issues.push(err('missing_id', `node has no id (type=${n.type})`));
     if (!n.type) issues.push(err('missing_type', `node ${n.id} has no type`));
     if (ids.has(n.id)) issues.push(err('duplicate_id', `duplicate node id ${n.id}`));
-    ids.add(n.id);
+    if (n.id) ids.add(n.id);
   }
   for (const n of nodes) {
+    if (!n || typeof n !== 'object' || Array.isArray(n)) continue;
     if (n.z && !tabIds.has(n.z)) issues.push(err('bad_tab_ref', `node ${n.id} z=${n.z} references missing tab`));
     for (const port of n.wires || []) {
       for (const target of port || []) {
@@ -53,7 +58,7 @@ function pass1_schema(nodes) {
 
 function pass2_catalog(nodes, installed) {
   const issues = [];
-  for (const n of nodes) {
+  for (const n of nodes.filter(isNodeObject)) {
     const known = CORE_TYPES.has(n.type) || (installed && installed.has(n.type));
     if (!known) {
       issues.push((installed ? err : warn)('unknown_type', `node type '${n.type}' not in catalog${installed ? ' (not installed)' : ' (catalog unknown — connector offline)'}`));
@@ -64,7 +69,7 @@ function pass2_catalog(nodes, installed) {
 
 function pass3_code(nodes) {
   const issues = [];
-  for (const n of nodes.filter(n => n.type === 'function')) {
+  for (const n of nodes.filter(n => isNodeObject(n) && n.type === 'function')) {
     const r = lintFunctionCode(n.func || '');
     for (const i of r.issues) issues.push({ ...i, node: n.id });
   }
@@ -73,7 +78,7 @@ function pass3_code(nodes) {
 
 function pass4_security(nodes) {
   const issues = [];
-  for (const n of nodes) {
+  for (const n of nodes.filter(isNodeObject)) {
     if (DANGEROUS_TYPES.has(n.type)) issues.push(warn('dangerous_node', `'${n.type}' node ${n.id} is high-risk; review.`));
     if (n.type === 'http in' && !n.url) issues.push(warn('http_no_url', `http-in ${n.id} has no url`));
     if (n.type === 'mqtt in' && /[#+]/.test(n.topic || '')) issues.push(warn('mqtt_wildcard', `mqtt-in ${n.id} uses wildcard topic '${n.topic}' (message-storm risk)`));
@@ -92,7 +97,7 @@ function pass4_security(nodes) {
 function pass5_simulate(nodes, messages) {
   const issues = [];
   const results = [];
-  for (const n of nodes.filter(n => n.type === 'function')) {
+  for (const n of nodes.filter(n => isNodeObject(n) && n.type === 'function')) {
     for (const msg of messages) {
       const r = runFunctionNode(n.func || '', msg);
       results.push({ node: n.id, input: msg, ...r });
@@ -108,4 +113,8 @@ const err = (id, msg) => ({ severity: 'error', id, msg });
 const warn = (id, msg) => ({ severity: 'warn', id, msg });
 function mkPass(name, issues) {
   return { name, ok: !issues.some(i => i.severity === 'error'), issues };
+}
+
+function isNodeObject(n) {
+  return !!n && typeof n === 'object' && !Array.isArray(n);
 }

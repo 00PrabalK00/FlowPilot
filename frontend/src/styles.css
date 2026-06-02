@@ -37,6 +37,7 @@ body { margin: 0; background: var(--bg); color: var(--txt); font: 13px/1.45 ui-s
 .sc-appr { align-self: stretch; border: 1px solid var(--warn); background: #2a210c; border-radius: 9px; padding: 9px; }
 .sc-appr-h { font-size: 13px; margin-bottom: 7px; } .sc-appr-h code { color: var(--acc); }
 .sc-appr-b { display: flex; gap: 6px; }
+.sc-appr-b button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
 .sc-appr-b .approve { background: #14431f; border: 1px solid var(--good); color: #b7f7c2; flex: 1; }
 .sc-appr-b .deny { background: #4a1714; border: 1px solid var(--bad); flex: 1; }
 
@@ -139,6 +140,9 @@ svg text { fill: #e6edf3; font: 11px monospace; }
 .sc-brainlbl { font-family: monospace; }
 .brainbtn { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: 12px; }
 .brainbtn:hover { border-color: var(--acc); }
+.changesbtn { display: inline-flex; align-items: center; gap: 6px; background: #0d1117; color: var(--dim); border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: 12px; }
+.changesbtn.has { color: var(--acc); border-color: #1f6feb66; }
+.changesbtn:hover { border-color: var(--acc); color: var(--txt); }
 
 /* ===== Settings modal ===== */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; z-index: 50; }
@@ -146,6 +150,26 @@ svg text { fill: #e6edf3; font: 11px monospace; }
 .modal-h { display: flex; align-items: center; margin-bottom: 6px; }
 .modal-h b { font-size: 15px; }
 .modal-h button { margin-left: auto; background: none; border: none; color: var(--dim); cursor: pointer; }
+.changes-modal { width: min(900px, 94vw); }
+.changes-modal .modal-h b { display: inline-flex; align-items: center; gap: 7px; }
+.change-summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 12px; }
+.change-summary span { border: 1px solid var(--line); background: #0d1117; border-radius: 6px; padding: 4px 8px; font-size: 12px; }
+.change-sec { margin: 12px 0 6px; color: var(--acc); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+.change-list, .change-code-list { display: flex; flex-direction: column; gap: 6px; }
+.change-row { display: grid; grid-template-columns: 52px 90px minmax(120px, 1fr) minmax(160px, 2fr); gap: 8px; align-items: center; background: #0d1117; border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; font-size: 12px; }
+.change-row.add { border-color: #3fb95066; }
+.change-row.mod { border-color: #58a6ff66; }
+.change-kind { color: var(--good); font-family: monospace; }
+.change-row.mod .change-kind { color: var(--acc); }
+.change-node { color: var(--dim); font-family: monospace; }
+.change-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change-fields { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.change-code { background: #0d1117; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.change-code-h { display: flex; justify-content: space-between; gap: 8px; padding: 7px 9px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.change-code-h span { color: var(--dim); }
+.code-cols { display: grid; grid-template-columns: 1fr 1fr; min-height: 120px; }
+.code-cols pre { margin: 0; padding: 9px; overflow: auto; white-space: pre-wrap; font: 11px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; max-height: 260px; border-right: 1px solid var(--line); }
+.code-cols pre:last-child { border-right: 0; }
 .set-sec { margin: 14px 0 8px; font-size: 12px; color: var(--acc); text-transform: uppercase; letter-spacing: .4px; }
 .set-hint { color: var(--dim); text-transform: none; letter-spacing: 0; font-size: 11px; }
 .set-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
@@ -199,6 +223,8 @@ svg text { fill: #e6edf3; font: 11px monospace; }
 /* new-chat + deploy strip */
 .sc-newchat { margin-left: auto; background: #0d1117; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; padding: 3px 7px; cursor: pointer; display: flex; align-items: center; }
 .sc-newchat:hover { border-color: var(--acc); color: var(--txt); }
+.sc-changebtn { background: #0d1117; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; padding: 3px 7px; cursor: pointer; display: flex; align-items: center; }
+.sc-changebtn:hover { border-color: var(--acc); color: var(--txt); }
 .sc-bar .sc-gear { margin-left: 0; }
 .sc-deploy { border-top: 1px solid var(--good); background: #0c2114; padding: 8px 10px; display: flex; align-items: center; gap: 8px; }
 .sc-deploy-t { flex: 1; font-size: 12px; } .sc-deploy-t b { color: var(--good); }

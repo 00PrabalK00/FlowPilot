@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { decideApproval } from '../api.js';
 
-export default function ChatPanel({ messages, approvals, onSend, running, selected, onClearSelect, onAction }) {
+export default function ChatPanel({ messages, approvals, onSend, running, selected, onClearSelect, onAction, onOpenChanges }) {
   const [text, setText] = useState('Build me a robot task queue flow.');
 
   function submit(e) {
@@ -25,6 +25,7 @@ export default function ChatPanel({ messages, approvals, onSend, running, select
             <div className="atool">{a.tool}</div>
             <div className="areason">{a.reason}</div>
             <div className="abtns">
+              <button onClick={onOpenChanges}>Review changes</button>
               <button className="approve" onClick={() => decideApproval(a.id, 'approved')}>Approve & Deploy</button>
               <button className="deny" onClick={() => decideApproval(a.id, 'denied')}>Deny</button>
             </div>

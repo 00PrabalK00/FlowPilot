@@ -7,6 +7,7 @@ import DiffPanel from './panels/DiffPanel.jsx';
 import LogsPanel from './panels/LogsPanel.jsx';
 import SidebarChat from './panels/SidebarChat.jsx';
 import Settings from './panels/Settings.jsx';
+import ChangesModal from './panels/ChangesModal.jsx';
 import Icon from './Icon.jsx';
 
 export default function App() {
@@ -23,10 +24,12 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [brain, setBrain] = useState('claude-code');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [changesOpen, setChangesOpen] = useState(false);
   const [files, setFiles] = useState([]);
   const [pendingDraft, setPendingDraft] = useState(null);
   const seenDraft = useRef(null);
   const EMBED = new URLSearchParams(location.search).get('embed') === '1';
+  const draftNodeCount = countDraftNodes(draft);
 
   useEffect(() => {
     const close = subscribeEvents((e) => {
@@ -79,6 +82,7 @@ export default function App() {
   async function newChat() {
     await resetChat();
     setMessages([]); setEvents([]); setSelected(null); setPendingDraft(null); setDraft(null); setValidation(null); seenDraft.current = null;
+    setChangesOpen(false);
   }
 
   async function send(text) {
@@ -113,10 +117,12 @@ export default function App() {
           messages={messages} events={events} approvals={approvals}
           online={online} running={running} brain={brain} files={files} onRevert={revertFile}
           onOpenSettings={() => setSettingsOpen(true)} onNewChat={newChat}
+          onOpenChanges={() => setChangesOpen(true)}
           pendingDraft={pendingDraft} onDeploy={deployPending}
           selected={selected} onClearSelect={() => setSelected(null)}
           onAction={sendAboutSelected} onSend={send} />
         <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSelected={setBrain} />
+        <ChangesModal open={changesOpen} draft={draft} liveFlows={liveFlows} validation={validation} onClose={() => setChangesOpen(false)} />
       </>
     );
   }
@@ -127,6 +133,9 @@ export default function App() {
         <img className="logo-img" src="/logo.png" alt="FlowPilot" />
         <span className="logo">FlowPilot</span>
         <span className="sub">Live Agentic Node-RED Control Plane</span>
+        <button className={`changesbtn ${draft ? 'has' : ''}`} onClick={() => setChangesOpen(true)} title="Review pending changes">
+          <Icon name="diff" /> Changes{draft ? ` (${draftNodeCount})` : ''}
+        </button>
         <button className="brainbtn" onClick={() => setSettingsOpen(true)}><Icon name="gear" /> brain: {brain}</button>
         <span className={`badge ${online ? 'on' : 'off'}`}>{online ? '● connector online' : '○ connector offline'}</span>
         {running && <span className="badge run">agent working…</span>}
@@ -134,6 +143,7 @@ export default function App() {
 
       <div className="grid">
         <ChatPanel messages={messages} approvals={approvals} onSend={send} running={running}
+          onOpenChanges={() => setChangesOpen(true)}
           selected={selected} onClearSelect={() => setSelected(null)} onAction={sendAboutSelected} />
         <ActionStream events={events} />
         <FlowCanvas draft={draft} liveFlows={liveFlows} selectedId={selected?.id} onSelect={selectNode} />
@@ -141,6 +151,21 @@ export default function App() {
         <LogsPanel logs={logs} />
       </div>
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSelected={setBrain} />
+      <ChangesModal open={changesOpen} draft={draft} liveFlows={liveFlows} validation={validation} onClose={() => setChangesOpen(false)} />
     </div>
   );
+}
+
+function countDraftNodes(draft) {
+  const flow = normalizeFlow(draft?.flow);
+  return flow.filter((n) => n?.type !== 'tab').length;
+}
+
+function normalizeFlow(flow) {
+  if (Array.isArray(flow)) return flow;
+  if (typeof flow === 'string') {
+    try { return normalizeFlow(JSON.parse(flow)); } catch { return []; }
+  }
+  if (Array.isArray(flow?.flows)) return normalizeFlow(flow.flows);
+  return [];
 }

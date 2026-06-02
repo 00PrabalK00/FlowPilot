@@ -8,6 +8,7 @@ import { validateFlow } from '../src/validation/index.js';
 import { lintFunctionCode } from '../src/validation/code.js';
 import { generateFunctionNode } from '../src/tools/codegen.js';
 import { diffFlows } from '../src/tools/diff.js';
+import { manualControlFlow } from '../src/tools/dispatch.js';
 import { redact, redactObject } from '../src/redact.js';
 
 test('tool registry: known + unknown', () => {
@@ -21,6 +22,15 @@ test('permission: safe read auto-allowed', () => {
 
 test('permission: deploy needs approval', () => {
   assert.equal(evaluate('nodered.deploy_patch', { role: 'maintainer' }).decision, Decision.APPROVAL);
+});
+
+test('tool registry: deploy_patch accepts draftId, not raw flows', () => {
+  assert.deepEqual(TOOLS['nodered.deploy_patch'].params, { draftId: 'string', deploymentType: 'string?' });
+});
+
+test('tool registry: manual control draft function is available', () => {
+  assert.ok(isTool('flow.create_manual_control'));
+  assert.equal(TOOLS['flow.create_manual_control'].perm, Perm.SAFE);
 });
 
 test('permission: builder cannot reach high-risk', () => {
@@ -62,6 +72,14 @@ test('validateFlow: clean minimal flow passes all 5 passes', () => {
   assert.ok(r.ok, JSON.stringify(r.passes.flatMap(p => p.issues)));
 });
 
+test('manual control flow validates and emits only symbolic commands', () => {
+  const flow = manualControlFlow({ commandTopic: 'robot/manual/control', commands: ['stop', 'dock now'] });
+  const r = validateFlow(flow);
+  assert.ok(r.ok, JSON.stringify(r.passes.flatMap(p => p.issues)));
+  assert.ok(flow.some((n) => n.type === 'mqtt out' && n.topic === 'robot/manual/control'));
+  assert.ok(flow.some((n) => n.type === 'inject' && n.payload === 'dock_now'));
+});
+
 test('validateFlow: dangling wire + embedded secret fail', () => {
   const flow = [
     { id: 't', type: 'tab', label: 'T' },
@@ -70,6 +88,14 @@ test('validateFlow: dangling wire + embedded secret fail', () => {
   ];
   const r = validateFlow(flow);
   assert.ok(!r.ok);
+});
+
+test('validateFlow: malformed entries and missing ids fail cleanly', () => {
+  const r = validateFlow([{ id: 't', type: 'tab' }, { type: 'inject', z: 't' }, null]);
+  assert.ok(!r.ok);
+  const ids = r.passes.flatMap(p => p.issues).map(i => i.id);
+  assert.ok(ids.includes('missing_id'));
+  assert.ok(ids.includes('invalid_node'));
 });
 
 test('diff: new tab reports added nodes + runtime impact', () => {

@@ -16,7 +16,7 @@ const ACTIVITY = {
 
 export default function SidebarChat({
   messages, events, approvals, online, running, brain, onOpenSettings, files = [], onRevert,
-  onNewChat, pendingDraft, onDeploy,
+  onNewChat, onOpenChanges, pendingDraft, onDeploy,
   selected, onClearSelect, onAction, onSend
 }) {
   const [text, setText] = useState('');
@@ -44,6 +44,7 @@ export default function SidebarChat({
         <img className="sc-logo" src="/logo.png" alt="" />
         <b className="sc-name">FlowPilot</b>
         <button className="sc-newchat" onClick={onNewChat} title="New conversation"><Icon name="plus" size={14} /></button>
+        <button className="sc-changebtn" onClick={onOpenChanges} title="Review pending changes"><Icon name="diff" size={14} /></button>
         <button className="sc-gear" onClick={onOpenSettings} title="Settings · brain">
           <Icon name="gear" size={15} /> <span className="sc-brainlbl">{brain}</span>
         </button>
@@ -80,6 +81,7 @@ export default function SidebarChat({
           <div key={a.id} className="sc-appr">
             <div className="sc-appr-h"><Icon name="alert" /> Approve <code>{a.tool}</code> <span className={`risk ${a.risk}`}>{a.risk}</span></div>
             <div className="sc-appr-b">
+              <button onClick={onOpenChanges}><Icon name="diff" size={12} /> Review</button>
               <button className="approve" onClick={() => decideApproval(a.id, 'approved')}>Approve</button>
               <button className="deny" onClick={() => decideApproval(a.id, 'denied')}>Deny</button>
             </div>
