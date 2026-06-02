@@ -23,6 +23,11 @@ export async function getSnapshots() {
   return (await fetch(`/api/snapshots?workspaceId=${WS}`)).json();
 }
 
+export async function getLiveFlows() {
+  try { const r = await fetch(`/api/flows?workspaceId=${WS}`); return r.ok ? r.json() : { flows: [] }; }
+  catch { return { flows: [] }; }
+}
+
 export async function rollback(snapshotId) {
   await fetch('/api/rollback', {
     method: 'POST', headers: { 'content-type': 'application/json' },

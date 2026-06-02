@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { subscribeEvents, startChat, getDraft, getSnapshots, rollback } from './api.js';
+import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows } from './api.js';
 import ChatPanel from './panels/ChatPanel.jsx';
 import ActionStream from './panels/ActionStream.jsx';
 import FlowCanvas from './panels/FlowCanvas.jsx';
@@ -16,6 +16,8 @@ export default function App() {
   const [online, setOnline] = useState(false);
   const [running, setRunning] = useState(false);
   const [snapshots, setSnapshots] = useState([]);
+  const [liveFlows, setLiveFlows] = useState([]);
+  const [selected, setSelected] = useState(null);
   const seenDraft = useRef(null);
 
   useEffect(() => {
@@ -24,6 +26,7 @@ export default function App() {
       route(e);
     });
     refreshSnapshots();
+    refreshLiveFlows();
     return close;
   }, []);
 
@@ -31,7 +34,8 @@ export default function App() {
     switch (e.type) {
       case 'agent.started': setRunning(true); break;
       case 'agent.message': if (e.text) setMessages((p) => [...p, { role: 'assistant', text: e.text }]); break;
-      case 'agent.done': case 'agent.error': setRunning(false); refreshSnapshots(); break;
+      case 'agent.done': case 'agent.error': setRunning(false); refreshSnapshots(); refreshLiveFlows(); break;
+      case 'deploy.completed': case 'rollback.completed': refreshLiveFlows(); break;
       case 'approval.required':
         setApprovals((p) => [...p, { id: e.approvalId, tool: e.tool, risk: e.risk, reason: e.reason, params: e.params }]); break;
       case 'approval.granted': case 'approval.denied':
@@ -52,11 +56,26 @@ export default function App() {
     if (d) { setDraft(d); setValidation(d.validation); }
   }
   async function refreshSnapshots() { try { setSnapshots(await getSnapshots()); } catch {} }
+  async function refreshLiveFlows() { try { const r = await getLiveFlows(); setLiveFlows(r.flows || []); } catch {} }
 
   async function send(text) {
     setMessages((p) => [...p, { role: 'user', text }]);
     setDraft(null); setValidation(null); setApprovals([]); seenDraft.current = null;
     await startChat(text);
+  }
+
+  // Click a node in the canvas -> it becomes chat context.
+  function selectNode(node) { setSelected(node); }
+  function sendAboutSelected(action) {
+    if (!selected) return;
+    const ref = `node "${selected.name || selected.type}" (type=${selected.type}, id=${selected.id})`;
+    const tpl = {
+      explain: `Explain what ${ref} does in my Node-RED flow and how it connects.`,
+      modify: `I want to modify ${ref}. `,
+      delete: `Remove ${ref} from the flow safely (snapshot first, then deploy the patch).`
+    }[action];
+    if (action === 'modify') { /* let user finish typing */ return tpl; }
+    send(tpl);
   }
 
   return (
@@ -70,9 +89,10 @@ export default function App() {
       </header>
 
       <div className="grid">
-        <ChatPanel messages={messages} approvals={approvals} onSend={send} running={running} />
+        <ChatPanel messages={messages} approvals={approvals} onSend={send} running={running}
+          selected={selected} onClearSelect={() => setSelected(null)} onAction={sendAboutSelected} />
         <ActionStream events={events} />
-        <FlowCanvas draft={draft} />
+        <FlowCanvas draft={draft} liveFlows={liveFlows} selectedId={selected?.id} onSelect={selectNode} />
         <DiffPanel draft={draft} validation={validation} snapshots={snapshots} onRollback={(id) => rollback(id).then(refreshSnapshots)} />
         <LogsPanel logs={logs} />
       </div>

@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import './db.js';
-import { authConnector, registerConnector, isOnline, connectorInfo } from './connectorHub.js';
+import { authConnector, registerConnector, isOnline, connectorInfo, invokeConnector } from './connectorHub.js';
 import { subscribe } from './eventBus.js';
 import { runAgent, resolveApproval } from './agent/orchestrator.js';
 import { Snapshots, Drafts, Approvals, ToolCalls, audit } from './store.js';
@@ -21,6 +21,12 @@ app.use(express.json({ limit: '5mb' }));
 const WS = process.env.WORKSPACE_DEFAULT || 'default';
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+// Live flows for the interactive canvas (read-only).
+app.get('/api/flows', async (req, res) => {
+  try { res.json(await invokeConnector(req.query.workspaceId || WS, 'nodered.get_flows', {})); }
+  catch (e) { res.status(502).json({ error: e.message, flows: [] }); }
+});
 
 app.get('/api/connector/status', (req, res) => {
   const ws = req.query.workspaceId || WS;

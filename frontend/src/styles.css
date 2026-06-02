@@ -43,12 +43,31 @@ button:hover { border-color: var(--acc); } button:disabled { opacity: .5; cursor
 .card.good .ic { color: var(--good); } .card.bad { background: #2a1414; } .card.bad .ic { color: var(--bad); } .card.warn .ic { color: var(--warn); }
 
 .canvas-scroll { overflow: auto; flex: 1; }
+.tabbar { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
+.tabchip { padding: 2px 9px; font-size: 11px; border-radius: 10px; }
+.tabchip.on { border-color: var(--acc); color: var(--acc); }
+.canvas-hint { color: var(--dim); font-size: 11px; margin-top: 6px; font-style: italic; }
+.nodewrap { cursor: pointer; }
 svg .wire { fill: none; stroke: #6e7681; stroke-width: 2; }
-svg .node { fill: #30363d; stroke: #6e7681; }
+svg .node { fill: #30363d; stroke: #6e7681; transition: stroke .1s; }
+.nodewrap:hover .node { stroke: var(--acc); }
+svg .node.sel { stroke: var(--acc); stroke-width: 2.5; }
 svg .node.t-mqttin, svg .node.t-mqttout { fill: #2c2150; }
 svg .node.t-function { fill: #4a3a14; } svg .node.t-inject { fill: #143a2a; } svg .node.t-debug { fill: #4a1430; }
 svg text { fill: #e6edf3; font: 11px monospace; }
-.config-row { margin-top: 8px; color: var(--dim); } .chip { display: inline-block; background: #0d1117; border: 1px solid var(--line); border-radius: 10px; padding: 2px 8px; margin: 2px; font-size: 11px; }
+.config-row { margin-top: 8px; color: var(--dim); } .chip { display: inline-block; background: #0d1117; border: 1px solid var(--line); border-radius: 10px; padding: 2px 8px; margin: 2px; font-size: 11px; cursor: pointer; }
+.chip.sel { border-color: var(--acc); color: var(--acc); }
+
+.selbar { border: 1px solid var(--acc); background: #0d1b2e; border-radius: 7px; padding: 8px; margin-top: 8px; }
+.selhead { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+.selhead .dot { width: 11px; height: 11px; border-radius: 3px; background: #30363d; }
+.selhead .dot.t-function { background: #4a3a14; } .selhead .dot.t-mqttin, .selhead .dot.t-mqttout { background: #2c2150; }
+.selhead .dot.t-inject { background: #143a2a; } .selhead .dot.t-debug { background: #4a1430; }
+.seltype { color: var(--dim); font-family: monospace; font-size: 11px; }
+.selx { margin-left: auto; padding: 0 7px; }
+.selcode { background: #010409; border: 1px solid var(--line); border-radius: 5px; padding: 6px; margin: 6px 0; font-size: 11px; max-height: 90px; overflow: auto; white-space: pre-wrap; }
+.selacts { display: flex; gap: 6px; } .selacts button { font-size: 12px; padding: 4px 10px; }
+.seldel { border-color: var(--bad); color: #ffb3ae; }
 
 .diff { overflow: auto; } .sub2 { margin: 8px 0 4px; font-size: 11px; color: var(--dim); text-transform: uppercase; }
 .difflist { list-style: none; margin: 0; padding: 0; font-size: 12px; } .difflist li { padding: 2px 0; }
