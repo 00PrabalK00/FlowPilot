@@ -11,6 +11,7 @@
     "mcp"
   ],
   "scripts": {
+    "predev": "node scripts/stop.mjs",
     "dev": "concurrently -k -n nodered,backend,connector,frontend -c green,cyan,magenta,yellow \"npm:dev:nodered\" \"npm:dev:backend\" \"npm:dev:connector\" \"npm:dev:frontend\"",
     "stop": "node scripts/stop.mjs",
     "mcp:register": "node scripts/register-mcp.mjs",
