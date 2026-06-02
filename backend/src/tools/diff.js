@@ -1,5 +1,7 @@
 // Flow JSON diff (Diff panel, section 2). Node-level added/changed/removed.
 export function diffFlows(current = [], proposed = []) {
+  const arr = (x) => Array.isArray(x) ? x : (Array.isArray(x?.flows) ? x.flows : []);
+  current = arr(current); proposed = arr(proposed);
   const curMap = new Map(current.map(n => [n.id, n]));
   const propMap = new Map(proposed.map(n => [n.id, n]));
 

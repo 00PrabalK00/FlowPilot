@@ -16,6 +16,7 @@ const ACTIVITY = {
 
 export default function SidebarChat({
   messages, events, approvals, online, running, brain, onOpenSettings, files = [], onRevert,
+  onNewChat, pendingDraft, onDeploy,
   selected, onClearSelect, onAction, onSend
 }) {
   const [text, setText] = useState('');
@@ -42,6 +43,7 @@ export default function SidebarChat({
       <header className="sc-bar">
         <img className="sc-logo" src="/logo.png" alt="" />
         <b className="sc-name">FlowPilot</b>
+        <button className="sc-newchat" onClick={onNewChat} title="New conversation"><Icon name="plus" size={14} /></button>
         <button className="sc-gear" onClick={onOpenSettings} title="Settings · brain">
           <Icon name="gear" size={15} /> <span className="sc-brainlbl">{brain}</span>
         </button>
@@ -87,6 +89,13 @@ export default function SidebarChat({
         {running && <div className="sc-act running"><span className="sc-ic"><Icon name="sync" spin /></span> working…</div>}
         <div ref={end} />
       </div>
+
+      {pendingDraft && (
+        <div className="sc-deploy">
+          <span className="sc-deploy-t"><Icon name="rocket" size={12} /> Draft ready: <b>{pendingDraft.name || pendingDraft.id}</b> · {pendingDraft.nodeCount} nodes</span>
+          <button className="sc-deploybtn" onClick={onDeploy} disabled={running}>Deploy</button>
+        </div>
+      )}
 
       {files.length > 0 && (
         <div className="sc-files">

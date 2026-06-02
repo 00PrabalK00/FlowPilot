@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows, getProviders, getFiles, restoreFile } from './api.js';
+import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows, getProviders, getFiles, restoreFile, deployDraft, resetChat } from './api.js';
 import ChatPanel from './panels/ChatPanel.jsx';
 import ActionStream from './panels/ActionStream.jsx';
 import FlowCanvas from './panels/FlowCanvas.jsx';
@@ -24,6 +24,7 @@ export default function App() {
   const [brain, setBrain] = useState('claude-code');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [files, setFiles] = useState([]);
+  const [pendingDraft, setPendingDraft] = useState(null);
   const seenDraft = useRef(null);
   const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 
@@ -47,12 +48,14 @@ export default function App() {
       case 'agent.started': setRunning(true); break;
       case 'agent.message': if (e.text) setMessages((p) => [...p, { role: 'assistant', text: e.text, ts: e.ts || Date.now() }]); break;
       case 'agent.done': case 'agent.error': setRunning(false); refreshSnapshots(); refreshLiveFlows(); break;
-      case 'deploy.completed': case 'rollback.completed': refreshLiveFlows(); break;
+      case 'deploy.completed': setPendingDraft(null); refreshLiveFlows(); break;
+      case 'rollback.completed': refreshLiveFlows(); break;
       case 'approval.required':
         setApprovals((p) => [...p, { id: e.approvalId, tool: e.tool, risk: e.risk, reason: e.reason, params: e.params }]); break;
       case 'approval.granted': case 'approval.denied':
         setApprovals((p) => p.filter((a) => a.id !== e.approvalId)); break;
       case 'flow.draft.created':
+        setPendingDraft({ id: e.draftId, name: e.name, nodeCount: e.nodeCount });
         if (seenDraft.current !== e.draftId) { seenDraft.current = e.draftId; loadDraft(e.draftId); } break;
       case 'flow.validation.passed': case 'flow.validation.failed':
         setValidation({ ok: e.type.endsWith('passed'), passes: e.passes }); break;
@@ -72,6 +75,11 @@ export default function App() {
   async function refreshLiveFlows() { try { const r = await getLiveFlows(); setLiveFlows(r.flows || []); } catch {} }
   async function refreshFiles() { try { setFiles(await getFiles()); } catch {} }
   async function revertFile(path) { await restoreFile(path); refreshFiles(); }
+  async function deployPending() { if (pendingDraft) await deployDraft(pendingDraft.id); }
+  async function newChat() {
+    await resetChat();
+    setMessages([]); setEvents([]); setSelected(null); setPendingDraft(null); setDraft(null); setValidation(null); seenDraft.current = null;
+  }
 
   async function send(text) {
     setMessages((p) => [...p, { role: 'user', text, ts: Date.now() }]);
@@ -79,11 +87,16 @@ export default function App() {
     await startChat(text, { provider: brain });
   }
 
-  // Click a node in the canvas -> it becomes chat context.
+  // Click a node in the canvas -> it becomes chat context (with its tab/flow).
   function selectNode(node) { setSelected(node); }
+  function tabOf(node) {
+    const tab = liveFlows.find((n) => n.type === 'tab' && n.id === node?.z);
+    return tab?.label || node?.z || null;
+  }
   function sendAboutSelected(action) {
     if (!selected) return;
-    const ref = `node "${selected.name || selected.type}" (type=${selected.type}, id=${selected.id})`;
+    const tab = tabOf(selected);
+    const ref = `node "${selected.name || selected.type}" (type=${selected.type}, id=${selected.id}${tab ? `, in tab "${tab}"` : ''})`;
     const tpl = {
       explain: `Explain what ${ref} does in my Node-RED flow and how it connects.`,
       modify: `I want to modify ${ref}. `,
@@ -99,7 +112,8 @@ export default function App() {
         <SidebarChat
           messages={messages} events={events} approvals={approvals}
           online={online} running={running} brain={brain} files={files} onRevert={revertFile}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)} onNewChat={newChat}
+          pendingDraft={pendingDraft} onDeploy={deployPending}
           selected={selected} onClearSelect={() => setSelected(null)}
           onAction={sendAboutSelected} onSend={send} />
         <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSelected={setBrain} />

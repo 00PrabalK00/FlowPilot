@@ -7,11 +7,19 @@ export async function startChat(prompt, { role = 'maintainer', provider = 'claud
   });
 }
 
+export async function resetChat() {
+  await fetch('/api/chat/reset', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workspaceId: WS }) });
+}
+
 export async function decideApproval(id, decision) {
   await fetch(`/api/approvals/${id}/decide`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ decision })
   });
+}
+
+export async function deployDraft(draftId) {
+  return (await fetch('/api/deploy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ draftId, workspaceId: WS }) })).json();
 }
 
 export async function getDraft(id) {

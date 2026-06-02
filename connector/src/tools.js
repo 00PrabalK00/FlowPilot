@@ -45,7 +45,7 @@ export function makeExecutor(nr, config = {}, emit = () => {}) {
       // Delegate a chat turn to a locally-installed, logged-in AI CLI (claude/codex/gemini).
       case 'agent.run_cli':
         return runCli(params.cli || 'claude-code', params.prompt,
-          { ...config, cliModel: params.model || config.cliModel, agentMode: params.agentMode, agentDirs: params.agentDirs }, emit);
+          { ...config, cliModel: params.model || config.cliModel, agentMode: params.agentMode, agentDirs: params.agentDirs, resumeId: params.resumeId }, emit);
       case 'agent.run_claude_code':
         return runCli('claude-code', params.prompt, { ...config, cliModel: params.model || config.cliModel }, emit);
       case 'agent.cli_check':

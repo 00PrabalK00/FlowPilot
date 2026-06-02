@@ -16,6 +16,21 @@ const IS_WIN = process.platform === 'win32';
 // command name per CLI brain
 const CLI_CMD = { 'claude-code': 'claude', 'codex-cli': 'codex', 'gemini-cli': 'gemini' };
 
+const OPERATOR_BRIEFING = [
+  'You are FlowPilot, an operator embedded in the user\'s Node-RED editor.',
+  'You control Node-RED ONLY through the flowpilot MCP tools (e.g. mcp__flowpilot__nodered_get_flows,',
+  'mcp__flowpilot__flow_create_draft, mcp__flowpilot__flow_validate_draft, mcp__flowpilot__flow_diff,',
+  'mcp__flowpilot__nodered_deploy_patch). Rules:',
+  '1. At the START of any task about flows/nodes, call nodered_get_flows first to see the current tabs,',
+  '   node ids, names and wiring. Do not ask the user for information you can read from the flows.',
+  '2. When the user names a node or tab (e.g. tab "UGV Drive", node "left", "E-STOP latch"), find it in',
+  '   the flows by its label/name and use its id. Inject nodes have no failure output — interpret intent',
+  '   (e.g. "if left fails connect to E-STOP" = wire/route so a fault path triggers the E-STOP function).',
+  '3. To change a flow: build the updated nodes, flow_create_draft, flow_validate_draft, flow_diff, then',
+  '   nodered_deploy_patch (which asks the user for approval). Prefer minimal single-tab patches.',
+  '4. Be concise. Explain what you changed and the runtime impact.'
+].join('\n');
+
 export async function runCli(cli, prompt, config = {}, emit = () => {}) {
   if (!prompt || !prompt.trim()) return { ok: false, text: '(empty prompt)' };
   const cmd = CLI_CMD[cli] || config.cliCommand || 'claude'; // per-CLI map wins over global override
@@ -33,15 +48,19 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
       FLOWPILOT_ROLE: config.cliRole || 'maintainer',
       FLOWPILOT_RUNTIME_MODE: config.runtimeMode || 'design'
     } } } };
-    const cfgPath = join(mkdtempSync(join(tmpdir(), 'flowpilot-')), 'mcp.json');
+    const tmp = mkdtempSync(join(tmpdir(), 'flowpilot-'));
+    const cfgPath = join(tmp, 'mcp.json');
     writeFileSync(cfgPath, JSON.stringify(cfg));
+    // orienting briefing so the brain knows it operates Node-RED via the flowpilot tools
+    const sysPath = join(tmp, 'system.txt');
+    writeFileSync(sysPath, OPERATOR_BRIEFING);
+
     const full = config.agentMode === 'full';
-    args = ['-p', '--output-format', 'stream-json', '--verbose'];
+    args = ['-p', '--output-format', 'stream-json', '--verbose', '--append-system-prompt-file', sysPath];
+    if (config.resumeId) args.push('--resume', config.resumeId);   // continue the conversation
     if (full) {
-      // full coding agent: allow Edit/Write/Bash; file changes are tracked + revertable.
       args.push('--permission-mode', 'bypassPermissions', '--mcp-config', cfgPath);
     } else {
-      // safe: only the flowpilot Node-RED tools.
       args.push('--permission-mode', 'default', '--allowedTools', 'mcp__flowpilot', '--strict-mcp-config', '--mcp-config', cfgPath);
     }
     for (const d of config.agentDirs || []) args.push('--add-dir', d);
@@ -50,7 +69,7 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
   }
 
   return new Promise((resolve) => {
-    let out = '', err = '', buf = '', resultText = null, isErr = false;
+    let out = '', err = '', buf = '', resultText = null, isErr = false, sessionId = null;
     const child = spawn(cmd, args, { cwd: ROOT, shell: IS_WIN });
     const killer = setTimeout(() => child.kill(), config.cliTimeoutMs || 280000);
 
@@ -63,6 +82,7 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
         const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
         if (!line) continue;
         let obj; try { obj = JSON.parse(line); } catch { continue; }
+        if (obj.session_id) sessionId = obj.session_id;
         handleStream(obj, emit, (t, e) => { resultText = t; isErr = e; });
       }
     });
@@ -70,7 +90,7 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
     child.on('error', (e) => { clearTimeout(killer); resolve({ ok: false, text: `${cmd} not runnable: ${e.message}` }); });
     child.on('close', (code) => {
       clearTimeout(killer);
-      if (parse === 'stream') return resolve({ ok: !isErr && code === 0, text: resultText || out.trim() || err.trim() || `exited ${code}` });
+      if (parse === 'stream') return resolve({ ok: !isErr && code === 0, text: resultText || out.trim() || err.trim() || `exited ${code}`, sessionId });
       resolve({ ok: code === 0, text: out.trim() || err.trim() || `${cmd} exited ${code}` });
     });
     child.stdin.write(prompt);

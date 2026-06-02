@@ -7,7 +7,11 @@ import { publish } from '../eventBus.js';
 import { Runs, audit } from '../store.js';
 import { getProviderConfig, getAgent } from '../secretStore.js';
 
-export async function runCliChat({ workspaceId, prompt, cli = 'claude-code' }) {
+// per-workspace Claude Code session id, so follow-up turns keep context
+const sessions = new Map();
+export function resetCliSession(workspaceId) { sessions.delete(workspaceId); }
+
+export async function runCliChat({ workspaceId, prompt, cli = 'claude-code', fresh = false }) {
   const runId = Runs.create(workspaceId, prompt);
   const emit = (e) => publish(workspaceId, { runId, ...e });
 
@@ -18,8 +22,11 @@ export async function runCliChat({ workspaceId, prompt, cli = 'claude-code' }) {
     // long timeout: the CLI may take a while + call several tools
     const model = getProviderConfig(cli).model || undefined; // user-chosen model for this CLI
     const agent = getAgent();                                 // 'tools' | 'full' + allowed dirs
+    if (fresh) sessions.delete(workspaceId);
+    const resumeId = cli === 'claude-code' ? sessions.get(workspaceId) : undefined;
     const res = await invokeConnector(workspaceId, 'agent.run_cli',
-      { cli, prompt, model, agentMode: agent.mode, agentDirs: agent.dirs }, 290000);
+      { cli, prompt, model, agentMode: agent.mode, agentDirs: agent.dirs, resumeId }, 290000);
+    if (res?.sessionId) sessions.set(workspaceId, res.sessionId); // remember for continuity
     const text = res?.text || '(no response)';
     emit(makeEvent(EventType.AGENT_MESSAGE, { text }));
     emit(makeEvent(EventType.AGENT_DONE, { text }));

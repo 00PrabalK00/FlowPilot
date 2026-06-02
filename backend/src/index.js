@@ -7,7 +7,7 @@ import './db.js';
 import { authConnector, registerConnector, isOnline, connectorInfo, invokeConnector } from './connectorHub.js';
 import { subscribe } from './eventBus.js';
 import { runAgent, resolveApproval } from './agent/orchestrator.js';
-import { runCliChat } from './agent/cliBridge.js';
+import { runCliChat, resetCliSession } from './agent/cliBridge.js';
 import { Snapshots, Drafts, Approvals, ToolCalls, audit } from './store.js';
 import { dispatchTool } from './tools/dispatch.js';
 import { evaluate, Decision } from './permission.js';
@@ -42,12 +42,12 @@ app.get('/api/connector/status', (req, res) => {
 
 // Start an agent run. Events stream over SSE; deploy pauses for approval.
 app.post('/api/chat', async (req, res) => {
-  const { prompt, provider, role = 'maintainer', runtimeMode = 'design', enabledRestricted = [], workspaceId = WS } = req.body || {};
+  const { prompt, provider, role = 'maintainer', runtimeMode = 'design', enabledRestricted = [], workspaceId = WS, fresh = false } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
   // A CLI brain delegates the whole turn to the user's local login; otherwise use the API tool-loop.
   const chosen = provider || getSelected();
   if (CLI_BRAINS.has(chosen) || chosen === 'cli') {
-    runCliChat({ workspaceId, prompt, cli: chosen === 'cli' ? 'claude-code' : chosen }).catch(() => {});
+    runCliChat({ workspaceId, prompt, cli: chosen === 'cli' ? 'claude-code' : chosen, fresh }).catch(() => {});
   } else {
     const policy = { role, runtimeMode, enabledRestricted };
     runAgent({ workspaceId, prompt, providerName: chosen, policy }).catch(() => {});
@@ -122,6 +122,21 @@ app.post('/api/providers/test', async (req, res) => {
     res.json({ ok: false, error: e.message });
   }
 });
+
+// Explicit Deploy button: deploy a draft by id through the safe pipeline (snapshot/health/rollback).
+// The user's click IS the approval, so no wait here.
+app.post('/api/deploy', async (req, res) => {
+  const ws = req.body?.workspaceId || WS;
+  const draftId = req.body?.draftId;
+  if (!draftId) return res.status(400).json({ error: 'draftId required' });
+  const ctx = { workspaceId: ws, runId: null, prompt: '(deploy button)', emit: (e) => publish(ws, e) };
+  audit(ws, 'user', 'deploy.button', { draftId });
+  try { res.json(await dispatchTool(ctx, 'nodered.deploy_patch', { draftId })); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// New conversation: drop the stored CLI session so the next turn starts fresh.
+app.post('/api/chat/reset', (req, res) => { resetCliSession(req.body?.workspaceId || WS); res.json({ ok: true }); });
 
 // Live event stream to the browser (SSE).
 app.get('/api/events', (req, res) => {
