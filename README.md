@@ -1,4 +1,8 @@
-# FlowPilot — Live Agentic Node-RED Control Plane
+<p align="center">
+  <img src="frontend/public/logo.png" alt="FlowPilot" width="120" />
+</p>
+
+<h1 align="center">FlowPilot — Live Agentic Node-RED Control Plane</h1>
 
 Not a chatbot that spits out flow JSON. A **guarded live operator** that watches Node-RED,
 drafts flows + function code, runs 5 validation passes, deploys safely behind approval, watches
