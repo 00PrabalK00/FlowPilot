@@ -9,6 +9,11 @@ const API_PROVIDERS = [
   { id: 'gemini', label: 'Google Gemini', placeholder: 'AIza…' }
 ];
 const CLI_LABEL = { 'claude-code': 'Claude Code', 'codex-cli': 'Codex', 'gemini-cli': 'Gemini CLI' };
+const CLI_MODELS = {
+  'claude-code': ['', 'opus', 'sonnet', 'haiku'],
+  'codex-cli': ['', 'gpt-5-codex', 'gpt-5', 'o3'],
+  'gemini-cli': ['', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash']
+};
 
 export default function Settings({ open, onClose, onSelected }) {
   const [status, setStatus] = useState(null);
@@ -56,6 +61,11 @@ export default function Settings({ open, onClose, onSelected }) {
               {installed
                 ? <span className="set-saved" title={inst.version}>installed</span>
                 : <span className="set-missing">not found</span>}
+              <select className="set-modelsel" disabled={!installed}
+                value={models[c] ?? status?.cliModels?.[c] ?? ''}
+                onChange={(e) => { const m = e.target.value; setModels((x) => ({ ...x, [c]: m })); saveProvider({ provider: c, model: m }).then(setStatus); }}>
+                {CLI_MODELS[c].map((m) => <option key={m} value={m}>{m || 'default model'}</option>)}
+              </select>
               <Badge p={c} />
               <span className="set-acts">
                 <button onClick={() => runTest(c)} disabled={!installed}>Test</button>

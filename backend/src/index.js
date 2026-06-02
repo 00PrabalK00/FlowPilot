@@ -72,7 +72,7 @@ app.get('/api/providers', async (req, res) => {
 app.post('/api/providers', (req, res) => {
   const { provider, apiKey, model, baseUrl, select } = req.body || {};
   if (!provider) return res.status(400).json({ error: 'provider required' });
-  if (apiKey !== undefined || model || baseUrl) setProviderConfig(provider, { apiKey, model, baseUrl });
+  if (apiKey !== undefined || model !== undefined || baseUrl) setProviderConfig(provider, { apiKey, model, baseUrl });
   if (select) setSelected(provider);
   res.json({ ok: true, ...providerStatus() });
 });

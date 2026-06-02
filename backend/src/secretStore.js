@@ -51,7 +51,7 @@ export function setProviderConfig(name, { apiKey, model, baseUrl } = {}) {
   state.providers[name] = {
     ...cur,
     ...(apiKey !== undefined && apiKey !== '' ? { apiKey } : {}),
-    ...(model ? { model } : {}),
+    ...(model !== undefined ? { model } : {}),   // '' clears the model (use CLI default)
     ...(baseUrl ? { baseUrl } : {})
   };
   save(state);
@@ -62,8 +62,11 @@ export function clearProvider(name) { delete state.providers[name]; save(state);
 // SAFE status for the API/UI — NEVER includes the key itself.
 export function status() {
   const names = ['claude', 'openai', 'gemini', 'ollama', 'mock'];
+  const cliModels = {};
+  for (const c of ['claude-code', 'codex-cli', 'gemini-cli']) cliModels[c] = (state.providers[c] || {}).model || '';
   return {
     selected: getSelected(),
+    cliModels,
     providers: names.map((name) => {
       const cfg = getProviderConfig(name);
       return {

@@ -5,6 +5,7 @@ import { EventType, makeEvent } from '@flowpilot/shared/events';
 import { invokeConnector } from '../connectorHub.js';
 import { publish } from '../eventBus.js';
 import { Runs, audit } from '../store.js';
+import { getProviderConfig } from '../secretStore.js';
 
 export async function runCliChat({ workspaceId, prompt, cli = 'claude-code' }) {
   const runId = Runs.create(workspaceId, prompt);
@@ -15,7 +16,8 @@ export async function runCliChat({ workspaceId, prompt, cli = 'claude-code' }) {
 
   try {
     // long timeout: the CLI may take a while + call several tools
-    const res = await invokeConnector(workspaceId, 'agent.run_cli', { cli, prompt }, 290000);
+    const model = getProviderConfig(cli).model || undefined; // user-chosen model for this CLI
+    const res = await invokeConnector(workspaceId, 'agent.run_cli', { cli, prompt, model }, 290000);
     const text = res?.text || '(no response)';
     emit(makeEvent(EventType.AGENT_MESSAGE, { text }));
     emit(makeEvent(EventType.AGENT_DONE, { text }));

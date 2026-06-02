@@ -44,9 +44,9 @@ export function makeExecutor(nr, config = {}, emit = () => {}) {
         return nr._req('POST', `/inject/${params.nodeId}`).catch(e => ({ injected: false, error: e.message }));
       // Delegate a chat turn to a locally-installed, logged-in AI CLI (claude/codex/gemini).
       case 'agent.run_cli':
-        return runCli(params.cli || 'claude-code', params.prompt, config, emit);
+        return runCli(params.cli || 'claude-code', params.prompt, { ...config, cliModel: params.model || config.cliModel }, emit);
       case 'agent.run_claude_code':
-        return runCli('claude-code', params.prompt, config, emit);
+        return runCli('claude-code', params.prompt, { ...config, cliModel: params.model || config.cliModel }, emit);
       case 'agent.cli_check':
         return cliCheck(params.cli || 'claude-code', config);
       case 'agent.detect_clis':

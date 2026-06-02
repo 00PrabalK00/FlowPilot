@@ -20,11 +20,12 @@ export async function runCli(cli, prompt, config = {}, emit = () => {}) {
   if (!prompt || !prompt.trim()) return { ok: false, text: '(empty prompt)' };
   const cmd = CLI_CMD[cli] || config.cliCommand || 'claude'; // per-CLI map wins over global override
 
+  const model = config.cliModel;
   let args, parse = 'text';
   if (cli === 'codex-cli') {
-    args = ['exec', '-'];                 // MCP from ~/.codex/config.toml
+    args = model ? ['exec', '--model', model, '-'] : ['exec', '-'];  // MCP from ~/.codex/config.toml
   } else if (cli === 'gemini-cli') {
-    args = ['-p'];                        // MCP from ~/.gemini/settings.json
+    args = model ? ['-m', model, '-p'] : ['-p'];                     // MCP from ~/.gemini/settings.json
   } else {
     // Claude Code: inline MCP config; only flowpilot tools pre-allowed; stream-json for live progress.
     const cfg = { mcpServers: { flowpilot: { command: 'node', args: [MCP_SERVER], env: {

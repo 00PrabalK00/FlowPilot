@@ -181,3 +181,5 @@ svg text { fill: #e6edf3; font: 11px monospace; }
 .sc-think { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); font-style: italic; padding: 0 4px; opacity: .85; }
 .sc-think .oct { opacity: .7; }
 .set-missing { color: var(--bad); font-size: 11px; }
+
+.set-modelsel { background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-size: 11px; max-width: 130px; }
