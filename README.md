@@ -2,7 +2,10 @@
   <img src="frontend/public/logo.png" alt="FlowPilot" width="120" />
 </p>
 
-<h1 align="center">FlowPilot — Live Agentic Node-RED Control Plane</h1>
+<h1 align="center">FlowPilot — AI Control Plane for Node-RED</h1>
+
+<p align="center"><b>Chat with Node-RED. Ship safe flows.</b><br/>
+The AI assistant + control plane for production Node-RED: generate, validate, deploy, debug and roll back flows safely.</p>
 
 Not a chatbot that spits out flow JSON. A **guarded live operator** that watches Node-RED,
 drafts flows + function code, runs 5 validation passes, deploys safely behind approval, watches
@@ -11,6 +14,32 @@ runtime logs, and rolls back on failure.
 > Core rule: the AI does **not** control Node-RED. It *proposes* actions. The permission engine
 > decides what's allowed. The user approves dangerous actions. The connector executes bounded
 > tools. Everything is audited.
+
+## What is FlowPilot?
+
+FlowPilot is an **AI assistant and control plane for Node-RED**. It reads your existing flows, drafts
+new workflows, writes Function-node JavaScript, validates changes, shows a diff, requests approval,
+deploys safely, watches runtime logs, and rolls back if the runtime becomes unhealthy. It works with
+cloud AI, your logged-in **Claude Code / Codex / Gemini CLI** (via an MCP server), or **local models
+through Ollama**.
+
+## Why FlowPilot?
+
+Node-RED is powerful, but production flows need safety. The Node-RED editor is unsecured by default if
+exposed on a network — so an AI that *deploys* needs guardrails, not just generation. FlowPilot adds AI
+flow generation with **validation, approval gates, audit logs, live telemetry, security preflight and
+rollback**, through an **outbound-only local connector** so Node-RED never has to face the internet.
+
+## Use cases
+
+- **AI Node-RED workflow builder** — generate flows from a plain-English prompt
+- **Node-RED AI assistant** — chat-based help inside your runtime
+- **Node-RED flow generator** — JSON flow + Function-node code generation
+- **Node-RED debugging assistant** — trace message paths, find broken nodes, suggest fixes
+- **Node-RED MCP server** — give Claude Code / Codex / Gemini CLI bounded, guarded access to your flows
+- **Local AI assistant for Node-RED** — privacy-first via Ollama, no keys, no cloud
+- **Safe Node-RED deploy** — snapshot, validate, approve, deploy, health-check, auto-rollback
+- **Robotics & IoT** — robot task queue, MQTT workflow generator, ROS2 ↔ Node-RED bridge
 
 ## Architecture
 
