@@ -8,12 +8,52 @@ body { margin: 0; background: var(--bg); color: var(--txt); font: 13px/1.45 ui-s
 .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #0b0e13; }
 .logo-img { height: 30px; width: 30px; object-fit: contain; }
 
-/* Embedded-in-Node-RED sidebar layout */
-.embedbar { padding: 6px 10px; gap: 8px; }
-.embedbar .logo { font-size: 13px; }
-.embedbar .brainsel { margin-left: auto; }
-.embedgrid { flex: 1; display: grid; grid-template-rows: 1.4fr 1fr; gap: 6px; padding: 6px; min-height: 0; }
-.embedgrid .panel { min-height: 0; }
+/* =========================================================
+   Sidebar chat (embedded in Node-RED editor) — purpose-built
+   ========================================================= */
+.sc { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); color: var(--txt); font: 13px/1.5 ui-sans-serif, system-ui, Segoe UI, sans-serif; }
+.sc-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); background: #0b0e13; }
+.sc-logo { width: 22px; height: 22px; object-fit: contain; }
+.sc-name { color: var(--acc); font-size: 14px; }
+.sc-brain { margin-left: auto; background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-size: 12px; }
+.sc-dot { width: 9px; height: 9px; border-radius: 50%; }
+.sc-dot.on { background: var(--good); } .sc-dot.off { background: #6e7681; }
+
+.sc-feed { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.sc-empty { margin: auto 0; color: var(--dim); text-align: center; padding: 0 16px; }
+.sc-tip { font-size: 12px; opacity: .8; margin-top: 10px; }
+
+.sc-msg { max-width: 88%; padding: 8px 11px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+.sc-msg.user { align-self: flex-end; background: #1f6feb; color: #fff; border-bottom-right-radius: 4px; }
+.sc-msg.assistant { align-self: flex-start; background: #1b212b; border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+
+.sc-act { display: flex; align-items: baseline; gap: 7px; font-size: 12px; color: var(--dim); padding: 1px 4px; }
+.sc-act .sc-ic { color: var(--acc); width: 14px; text-align: center; }
+.sc-act.good .sc-ic { color: var(--good); } .sc-act.bad { color: #f0a8a3; } .sc-act.bad .sc-ic { color: var(--bad); }
+.sc-act .sc-tool { font-family: monospace; } .sc-act .sc-extra { opacity: .8; }
+.sc-act.running { color: var(--warn); } .sc-ic.spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sc-appr { align-self: stretch; border: 1px solid var(--warn); background: #2a210c; border-radius: 9px; padding: 9px; }
+.sc-appr-h { font-size: 13px; margin-bottom: 7px; } .sc-appr-h code { color: var(--acc); }
+.sc-appr-b { display: flex; gap: 6px; }
+.sc-appr-b .approve { background: #14431f; border: 1px solid var(--good); color: #b7f7c2; flex: 1; }
+.sc-appr-b .deny { background: #4a1714; border: 1px solid var(--bad); flex: 1; }
+
+.sc-sel { border-top: 1px solid var(--line); background: #0d1b2e; padding: 8px 10px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.sc-seldot { width: 11px; height: 11px; border-radius: 3px; background: #30363d; }
+.sc-seldot.t-function { background: #4a3a14; } .sc-seldot.t-mqttin, .sc-seldot.t-mqttout { background: #2c2150; }
+.sc-seldot.t-inject { background: #143a2a; } .sc-seldot.t-debug { background: #4a1430; }
+.sc-seltype { color: var(--dim); font-family: monospace; font-size: 11px; }
+.sc-selx { margin-left: auto; padding: 0 7px; }
+.sc-selacts { flex-basis: 100%; display: flex; gap: 6px; margin-top: 4px; }
+.sc-selacts button { flex: 1; font-size: 12px; padding: 5px; }
+.sc-selacts .seldel { border-color: var(--bad); color: #ffb3ae; }
+
+.sc-composer { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); background: #0b0e13; }
+.sc-composer textarea { flex: 1; resize: none; background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
+.sc-composer button { width: 42px; border-radius: 8px; background: #1f6feb; border: none; color: #fff; font-size: 16px; cursor: pointer; }
+.sc-composer button:disabled { opacity: .5; }
 .logo { font-weight: 700; color: var(--acc); font-size: 15px; }
 .sub { color: var(--dim); }
 .brainsel { margin-left: auto; font-size: 12px; color: var(--dim); }

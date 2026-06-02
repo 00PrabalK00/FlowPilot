@@ -5,6 +5,7 @@ import ActionStream from './panels/ActionStream.jsx';
 import FlowCanvas from './panels/FlowCanvas.jsx';
 import DiffPanel from './panels/DiffPanel.jsx';
 import LogsPanel from './panels/LogsPanel.jsx';
+import SidebarChat from './panels/SidebarChat.jsx';
 
 export default function App() {
   const [events, setEvents] = useState([]);
@@ -38,7 +39,7 @@ export default function App() {
   function route(e) {
     switch (e.type) {
       case 'agent.started': setRunning(true); break;
-      case 'agent.message': if (e.text) setMessages((p) => [...p, { role: 'assistant', text: e.text }]); break;
+      case 'agent.message': if (e.text) setMessages((p) => [...p, { role: 'assistant', text: e.text, ts: e.ts || Date.now() }]); break;
       case 'agent.done': case 'agent.error': setRunning(false); refreshSnapshots(); refreshLiveFlows(); break;
       case 'deploy.completed': case 'rollback.completed': refreshLiveFlows(); break;
       case 'approval.required':
@@ -64,7 +65,7 @@ export default function App() {
   async function refreshLiveFlows() { try { const r = await getLiveFlows(); setLiveFlows(r.flows || []); } catch {} }
 
   async function send(text) {
-    setMessages((p) => [...p, { role: 'user', text }]);
+    setMessages((p) => [...p, { role: 'user', text, ts: Date.now() }]);
     setDraft(null); setValidation(null); setApprovals([]); seenDraft.current = null;
     await startChat(text, { provider: brain });
   }
@@ -85,24 +86,11 @@ export default function App() {
 
   if (EMBED) {
     return (
-      <div className="app embed">
-        <header className="topbar embedbar">
-          <img className="logo-img" src="/logo.png" alt="FlowPilot" />
-          <span className="logo">FlowPilot</span>
-          <label className="brainsel">
-            <select value={brain} onChange={(e) => setBrain(e.target.value)}>
-              <option value="claude-code">Claude Code</option>
-              <option value="mock">Mock</option>
-            </select>
-          </label>
-          <span className={`badge ${online ? 'on' : 'off'}`}>{online ? '●' : '○'}</span>
-        </header>
-        <div className="embedgrid">
-          <ChatPanel messages={messages} approvals={approvals} onSend={send} running={running}
-            selected={selected} onClearSelect={() => setSelected(null)} onAction={sendAboutSelected} />
-          <ActionStream events={events} />
-        </div>
-      </div>
+      <SidebarChat
+        messages={messages} events={events} approvals={approvals}
+        online={online} running={running} brain={brain} setBrain={setBrain}
+        selected={selected} onClearSelect={() => setSelected(null)}
+        onAction={sendAboutSelected} onSend={send} />
     );
   }
 
