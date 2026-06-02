@@ -6,7 +6,7 @@
 body { margin: 0; background: var(--bg); color: var(--txt); font: 13px/1.45 ui-sans-serif, system-ui, Segoe UI, sans-serif; }
 .app { height: 100vh; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #0b0e13; }
-.logo-img { height: 30px; width: 30px; border-radius: 7px; object-fit: cover; background: #fff; }
+.logo-img { height: 30px; width: 30px; object-fit: contain; }
 .logo { font-weight: 700; color: var(--acc); font-size: 15px; }
 .sub { color: var(--dim); }
 .badge { margin-left: auto; font-size: 12px; padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line); }
