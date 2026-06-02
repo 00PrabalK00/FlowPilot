@@ -7,6 +7,13 @@ body { margin: 0; background: var(--bg); color: var(--txt); font: 13px/1.45 ui-s
 .app { height: 100vh; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #0b0e13; }
 .logo-img { height: 30px; width: 30px; object-fit: contain; }
+
+/* Embedded-in-Node-RED sidebar layout */
+.embedbar { padding: 6px 10px; gap: 8px; }
+.embedbar .logo { font-size: 13px; }
+.embedbar .brainsel { margin-left: auto; }
+.embedgrid { flex: 1; display: grid; grid-template-rows: 1.4fr 1fr; gap: 6px; padding: 6px; min-height: 0; }
+.embedgrid .panel { min-height: 0; }
 .logo { font-weight: 700; color: var(--acc); font-size: 15px; }
 .sub { color: var(--dim); }
 .brainsel { margin-left: auto; font-size: 12px; color: var(--dim); }

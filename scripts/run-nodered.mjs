@@ -1,6 +1,7 @@
 // Dev helper: launch a local Node-RED for testing the control plane.
-// Uses the node-red installed at the repo root; falls back to a docker container.
-import { spawn } from 'node:child_process';
+// Auto-installs the FlowPilot sidebar plugin into the userDir first, so the
+// "FlowPilot" tab is always present — zero manual setup.
+import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -8,6 +9,18 @@ import { existsSync } from 'node:fs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const redJs = join(root, 'node_modules', 'node-red', 'red.js');
 const userDir = join(root, '.nodered-test', 'userdir');
+const plugin = join(root, 'nodered-plugin');
+
+// auto-install the sidebar plugin if missing (idempotent)
+try {
+  const installed = join(userDir, 'node_modules', 'node-red-contrib-flowpilot', 'package.json');
+  if (!existsSync(installed)) {
+    console.log('[nodered] installing FlowPilot sidebar plugin into userDir ...');
+    execSync(`node "${join(root, 'scripts', 'install-plugin.mjs')}" "${userDir}"`, { stdio: 'inherit' });
+  }
+} catch (e) {
+  console.log('[nodered] plugin auto-install skipped:', e.message);
+}
 
 if (existsSync(redJs)) {
   console.log('[nodered] starting via', redJs);

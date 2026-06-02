@@ -1,0 +1,9 @@
+{
+  "name": "node-red-contrib-flowpilot",
+  "version": "0.1.0",
+  "description": "FlowPilot sidebar — AI control plane for Node-RED, inside the editor",
+  "keywords": ["node-red", "flowpilot", "ai", "assistant", "mcp"],
+  "node-red": {
+    "nodes": { "flowpilot": "flowpilot.js" }
+  }
+}

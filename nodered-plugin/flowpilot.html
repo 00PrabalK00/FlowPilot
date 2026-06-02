@@ -1,0 +1,70 @@
+<script type="text/javascript">
+  // Minimal config node registration (loads this html into the editor).
+  RED.nodes.registerType('flowpilot-config', {
+    category: 'config',
+    defaults: { name: { value: '' } },
+    label: function () { return this.name || 'flowpilot'; }
+  });
+
+  // --- FlowPilot sidebar: embeds the chat UI + forwards the selected node ---
+  (function () {
+    var FLOWPILOT_URL = 'http://localhost:5173';
+    var iframe = null;
+
+    function addSidebar() {
+      if (!RED.sidebar || document.getElementById('flowpilot-frame')) return;
+      var content = document.createElement('div');
+      content.style.height = '100%';
+      content.style.display = 'flex';
+      content.style.flexDirection = 'column';
+
+      iframe = document.createElement('iframe');
+      iframe.id = 'flowpilot-frame';
+      iframe.src = FLOWPILOT_URL + '/?embed=1';
+      iframe.style.border = '0';
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      content.appendChild(iframe);
+
+      RED.sidebar.addTab({
+        id: 'flowpilot',
+        label: 'FlowPilot',
+        name: 'FlowPilot',
+        iconClass: 'fa fa-paper-plane',
+        content: content,
+        enableOnEdit: true
+      });
+    }
+
+    function forwardSelection() {
+      try {
+        var sel = RED.view.selection();
+        var n = sel && sel.nodes && sel.nodes[0];
+        if (n && iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'flowpilot:select',
+            node: { id: n.id, type: n.type, name: n.name, func: n.func, z: n.z }
+          }, '*');
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // selection event name varies across Node-RED versions — listen broadly + mouseup fallback
+    ['nodes:selectionChanged', 'view:selection-changed', 'workspace:change'].forEach(function (ev) {
+      try { RED.events.on(ev, forwardSelection); } catch (e) {}
+    });
+    $(document).on('mouseup', '#red-ui-workspace-chart, .red-ui-workspace-chart', function () {
+      setTimeout(forwardSelection, 60);
+    });
+
+    if (RED.sidebar) addSidebar();
+    else RED.events.on('runtime-state', addSidebar);
+  })();
+</script>
+
+<script type="text/html" data-template-name="flowpilot-config">
+  <div class="form-row">
+    <label for="node-config-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-config-input-name" />
+  </div>
+</script>

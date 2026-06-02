@@ -20,6 +20,7 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [brain, setBrain] = useState('claude-code');
   const seenDraft = useRef(null);
+  const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 
   useEffect(() => {
     const close = subscribeEvents((e) => {
@@ -28,7 +29,10 @@ export default function App() {
     });
     refreshSnapshots();
     refreshLiveFlows();
-    return close;
+    // when embedded in the Node-RED editor, receive the node selected in the real canvas
+    const onMsg = (ev) => { if (ev.data?.type === 'flowpilot:select' && ev.data.node) setSelected(ev.data.node); };
+    window.addEventListener('message', onMsg);
+    return () => { close(); window.removeEventListener('message', onMsg); };
   }, []);
 
   function route(e) {
@@ -77,6 +81,29 @@ export default function App() {
     }[action];
     if (action === 'modify') { /* let user finish typing */ return tpl; }
     send(tpl);
+  }
+
+  if (EMBED) {
+    return (
+      <div className="app embed">
+        <header className="topbar embedbar">
+          <img className="logo-img" src="/logo.png" alt="FlowPilot" />
+          <span className="logo">FlowPilot</span>
+          <label className="brainsel">
+            <select value={brain} onChange={(e) => setBrain(e.target.value)}>
+              <option value="claude-code">Claude Code</option>
+              <option value="mock">Mock</option>
+            </select>
+          </label>
+          <span className={`badge ${online ? 'on' : 'off'}`}>{online ? '●' : '○'}</span>
+        </header>
+        <div className="embedgrid">
+          <ChatPanel messages={messages} approvals={approvals} onSend={send} running={running}
+            selected={selected} onClearSelect={() => setSelected(null)} onAction={sendAboutSelected} />
+          <ActionStream events={events} />
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -114,6 +114,19 @@ you're forced to work.
 - Restricted tools (shell/file) stay hidden unless `FLOWPILOT_ENABLE_RESTRICTED=tool.name,...`.
 - Test the bridge without a CLI: `node mcp/src/server.js` (stdio).
 
+### Use it inside the Node-RED editor (sidebar)
+
+FlowPilot ships a **Node-RED editor plugin** so the chat lives *inside* the Node-RED editor at
+`http://localhost:1880` — a **FlowPilot tab** (paper-plane icon) in the right sidebar. Select a node
+in the real canvas and it becomes the chat context (Explain / Modify / Delete that element).
+
+- `npm run dev` **auto-installs** the sidebar into the bundled dev Node-RED — nothing to do.
+- For your **own** Node-RED: `npm run plugin:install [userDir]` (defaults to `~/.node-red`), then restart it.
+- One-shot wiring (sidebar + MCP into your CLI): `npm run setup`.
+
+The sidebar embeds the chat UI (`/?embed=1`), so your two surfaces are: the **real Node-RED canvas**
+to see/edit flows, and the **FlowPilot tab** to talk to the agent — no separate website required.
+
 ## What's implemented (maps to the spec)
 
 - **MVP 1** read-only agent: get_flows / list_nodes / diagnostics / settings / logs / security preflight.
