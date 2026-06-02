@@ -62,7 +62,8 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="logo">⬢ FlowPilot</span>
+        <img className="logo-img" src="/logo.png" alt="FlowPilot" />
+        <span className="logo">FlowPilot</span>
         <span className="sub">Live Agentic Node-RED Control Plane</span>
         <span className={`badge ${online ? 'on' : 'off'}`}>{online ? '● connector online' : '○ connector offline'}</span>
         {running && <span className="badge run">agent working…</span>}
