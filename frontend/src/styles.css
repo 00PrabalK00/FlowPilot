@@ -9,7 +9,10 @@ body { margin: 0; background: var(--bg); color: var(--txt); font: 13px/1.45 ui-s
 .logo-img { height: 30px; width: 30px; object-fit: contain; }
 .logo { font-weight: 700; color: var(--acc); font-size: 15px; }
 .sub { color: var(--dim); }
-.badge { margin-left: auto; font-size: 12px; padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line); }
+.brainsel { margin-left: auto; font-size: 12px; color: var(--dim); }
+.brainsel select { background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; }
+.badge { font-size: 12px; padding: 3px 9px; border-radius: 12px; border: 1px solid var(--line); }
+.badge:first-of-type { margin-left: 10px; }
 .badge.on { color: var(--good); } .badge.off { color: var(--dim); }
 .badge.run { margin-left: 8px; color: var(--warn); }
 

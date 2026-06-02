@@ -7,6 +7,7 @@ import './db.js';
 import { authConnector, registerConnector, isOnline, connectorInfo, invokeConnector } from './connectorHub.js';
 import { subscribe } from './eventBus.js';
 import { runAgent, resolveApproval } from './agent/orchestrator.js';
+import { runCliChat } from './agent/cliBridge.js';
 import { Snapshots, Drafts, Approvals, ToolCalls, audit } from './store.js';
 import { dispatchTool } from './tools/dispatch.js';
 import { evaluate, Decision } from './permission.js';
@@ -37,8 +38,13 @@ app.get('/api/connector/status', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   const { prompt, provider, role = 'maintainer', runtimeMode = 'design', enabledRestricted = [], workspaceId = WS } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
-  const policy = { role, runtimeMode, enabledRestricted };
-  runAgent({ workspaceId, prompt, providerName: provider, policy }).catch(() => {});
+  // provider 'claude-code' (or 'cli') delegates the whole turn to the local Claude Code login.
+  if (provider === 'claude-code' || provider === 'cli') {
+    runCliChat({ workspaceId, prompt, cli: 'claude-code' }).catch(() => {});
+  } else {
+    const policy = { role, runtimeMode, enabledRestricted };
+    runAgent({ workspaceId, prompt, providerName: provider, policy }).catch(() => {});
+  }
   res.json({ ok: true, workspaceId });
 });
 

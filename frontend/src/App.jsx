@@ -18,6 +18,7 @@ export default function App() {
   const [snapshots, setSnapshots] = useState([]);
   const [liveFlows, setLiveFlows] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [brain, setBrain] = useState('claude-code');
   const seenDraft = useRef(null);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function App() {
   async function send(text) {
     setMessages((p) => [...p, { role: 'user', text }]);
     setDraft(null); setValidation(null); setApprovals([]); seenDraft.current = null;
-    await startChat(text);
+    await startChat(text, { provider: brain });
   }
 
   // Click a node in the canvas -> it becomes chat context.
@@ -84,6 +85,12 @@ export default function App() {
         <img className="logo-img" src="/logo.png" alt="FlowPilot" />
         <span className="logo">FlowPilot</span>
         <span className="sub">Live Agentic Node-RED Control Plane</span>
+        <label className="brainsel">brain&nbsp;
+          <select value={brain} onChange={(e) => setBrain(e.target.value)}>
+            <option value="claude-code">Claude Code (your login)</option>
+            <option value="mock">Mock (offline demo)</option>
+          </select>
+        </label>
         <span className={`badge ${online ? 'on' : 'off'}`}>{online ? '● connector online' : '○ connector offline'}</span>
         {running && <span className="badge run">agent working…</span>}
       </header>

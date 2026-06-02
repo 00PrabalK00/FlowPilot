@@ -1,9 +1,9 @@
 const WS = 'default';
 
-export async function startChat(prompt, role = 'maintainer') {
+export async function startChat(prompt, { role = 'maintainer', provider = 'claude-code' } = {}) {
   await fetch('/api/chat', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ prompt, role, workspaceId: WS })
+    body: JSON.stringify({ prompt, role, provider, workspaceId: WS })
   });
 }
 

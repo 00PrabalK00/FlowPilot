@@ -13,7 +13,13 @@ const CFG = {
   noderedToken: process.env.NODERED_TOKEN || null,
   workspaceId: process.env.WORKSPACE_ID || 'default',
   allowLocal: {},        // restricted tools off by default
-  safeCommands: {}       // robotics safe-command registry
+  safeCommands: {},      // robotics safe-command registry
+  // CLI-brain: delegate chat turns to the local Claude Code login
+  backendHttp: process.env.FLOWPILOT_BACKEND_HTTP || 'http://127.0.0.1:8787',
+  cliCommand: process.env.FLOWPILOT_CLI || 'claude',
+  cliRole: process.env.FLOWPILOT_CLI_ROLE || 'maintainer',
+  cliModel: process.env.FLOWPILOT_CLI_MODEL || null,
+  runtimeMode: 'design'
 };
 
 const nr = new NodeRedClient({ baseUrl: CFG.noderedUrl, token: CFG.noderedToken });
