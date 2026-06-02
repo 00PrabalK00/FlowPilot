@@ -8,7 +8,10 @@
 
   // --- FlowPilot sidebar: embeds the chat UI + forwards the selected node ---
   (function () {
-    var FLOWPILOT_URL = 'http://localhost:5173';
+    // Derive the UI host from wherever the editor is served (works on localhost, LAN, remote).
+    // Override per-deployment by setting window.FlowPilotURL in Node-RED's editor theme.
+    var FLOWPILOT_URL = window.FlowPilotURL ||
+      (location.protocol + '//' + location.hostname + ':' + (window.FlowPilotPort || 5173));
     var iframe = null;
 
     function addSidebar() {

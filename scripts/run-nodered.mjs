@@ -11,13 +11,10 @@ const redJs = join(root, 'node_modules', 'node-red', 'red.js');
 const userDir = join(root, '.nodered-test', 'userdir');
 const plugin = join(root, 'nodered-plugin');
 
-// auto-install the sidebar plugin if missing (idempotent)
+// auto-install/refresh the sidebar plugin every start (idempotent, keeps it current)
 try {
-  const installed = join(userDir, 'node_modules', 'node-red-contrib-flowpilot', 'package.json');
-  if (!existsSync(installed)) {
-    console.log('[nodered] installing FlowPilot sidebar plugin into userDir ...');
-    execSync(`node "${join(root, 'scripts', 'install-plugin.mjs')}" "${userDir}"`, { stdio: 'inherit' });
-  }
+  console.log('[nodered] installing/refreshing FlowPilot sidebar plugin ...');
+  execSync(`node "${join(root, 'scripts', 'install-plugin.mjs')}" "${userDir}"`, { stdio: 'inherit' });
 } catch (e) {
   console.log('[nodered] plugin auto-install skipped:', e.message);
 }
