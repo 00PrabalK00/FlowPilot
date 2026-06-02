@@ -20,6 +20,10 @@ test('permission: safe read auto-allowed', () => {
   assert.equal(evaluate('nodered.get_flows', { role: 'builder' }).decision, Decision.ALLOW);
 });
 
+test('tool registry: get_flows supports compact summary reads', () => {
+  assert.deepEqual(TOOLS['nodered.get_flows'].params, { view: 'string?', tab: 'string?', includeCode: 'boolean?' });
+});
+
 test('permission: deploy needs approval', () => {
   assert.equal(evaluate('nodered.deploy_patch', { role: 'maintainer' }).decision, Decision.APPROVAL);
 });
@@ -88,6 +92,14 @@ test('validateFlow: dangling wire + embedded secret fail', () => {
   ];
   const r = validateFlow(flow);
   assert.ok(!r.ok);
+});
+
+test('validateFlow: patch drafts may reference existing tabs', () => {
+  const patch = [
+    { id: 'f2', type: 'function', z: 'existing_tab', func: 'return msg;', wires: [] }
+  ];
+  assert.ok(!validateFlow(patch).ok);
+  assert.ok(validateFlow(patch, { allowExternalTabRefs: true }).ok);
 });
 
 test('validateFlow: malformed entries and missing ids fail cleanly', () => {

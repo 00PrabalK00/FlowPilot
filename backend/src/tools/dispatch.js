@@ -18,7 +18,7 @@ export async function dispatchTool(ctx, tool, params = {}) {
   // CONNECTOR-runner tools (with orchestration wrappers)
   switch (tool) {
     case 'nodered.create_snapshot': {
-      const { flows, rev } = await invokeConnector(ctx.workspaceId, 'nodered.get_flows', {});
+      const { flows, rev } = await invokeConnector(ctx.workspaceId, 'nodered.get_flows', { view: 'full' });
       const snapshotId = Snapshots.create(ctx.workspaceId, flows, rev, 'manual snapshot');
       return { snapshotId, nodeCount: flows.length };
     }
@@ -50,7 +50,7 @@ async function backendTool(ctx, tool, params) {
     case 'flow.create_draft': {
       const flow = normalizePatchInput(params.flow);
       if (!Array.isArray(flow)) throw new Error('flow.create_draft requires flow to be an array of Node-RED nodes');
-      assertValidFlowForDeploy(flow, 'draft');
+      assertValidFlowForDeploy(flow, 'draft', { allowExternalTabRefs: true });
       const draftId = Drafts.create(ctx.workspaceId, { name: params.name, intent: ctx.prompt, riskLevel: 'medium', flow });
       ctx.emit(makeEvent(EventType.FLOW_DRAFT_CREATED, { draftId, name: params.name, nodeCount: (flow || []).length }));
       return { draftId, name: params.name, nodeCount: (flow || []).length };
@@ -71,7 +71,7 @@ async function backendTool(ctx, tool, params) {
         const nodes = await invokeConnector(ctx.workspaceId, 'nodered.list_nodes', {});
         installedTypes = nodes.flatMap(m => m.types || []);
       } catch { /* connector offline -> catalog pass downgrades to warnings */ }
-      const validation = validateFlow(draft.flow, { installedTypes });
+      const validation = validateFlow(draft.flow, { installedTypes, allowExternalTabRefs: true });
       Drafts.setValidation(params.draftId, validation);
       ctx.emit(makeEvent(validation.ok ? EventType.FLOW_VALIDATION_PASSED : EventType.FLOW_VALIDATION_FAILED,
         { draftId: params.draftId, passes: validation.passes.map(p => ({ name: p.name, ok: p.ok, issues: p.issues.length })) }));
@@ -87,7 +87,7 @@ async function backendTool(ctx, tool, params) {
       const draft = Drafts.get(params.draftId);
       if (!draft) throw new Error('draft not found');
       let current = [];
-      try { current = (await invokeConnector(ctx.workspaceId, 'nodered.get_flows', {})).flows; } catch {}
+      try { current = (await invokeConnector(ctx.workspaceId, 'nodered.get_flows', { view: 'full' })).flows; } catch {}
       return diffFlows(current, draft.flow);
     }
     default:
@@ -109,12 +109,12 @@ async function deployPipeline(ctx, params) {
 
   if (draftId && !draft) throw new Error(`draft ${draftId} not found`);
   if (!Array.isArray(patch)) throw new Error('deploy_patch requires draftId, or a fallback flows array');
-  assertValidFlowForDeploy(patch, 'patch');
+  assertValidFlowForDeploy(patch, 'patch', { allowExternalTabRefs: true });
 
   ctx.emit(makeEvent(EventType.DEPLOY_STARTED, { draftId }));
 
   // 1. snapshot current
-  const cur = await invokeConnector(ctx.workspaceId, 'nodered.get_flows', {});
+  const cur = await invokeConnector(ctx.workspaceId, 'nodered.get_flows', { view: 'full' });
   const snapshotId = Snapshots.create(ctx.workspaceId, cur.flows, cur.rev, `pre-deploy ${draftId || 'inline-patch'}`);
 
   // 2. merge: append/replace draft nodes by id (single-tab patch on top of live config)
@@ -257,8 +257,8 @@ function slug(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 32);
 }
 
-function assertValidFlowForDeploy(flow, label) {
-  const validation = validateFlow(flow);
+function assertValidFlowForDeploy(flow, label, opts = {}) {
+  const validation = validateFlow(flow, opts);
   if (validation.ok) return;
   const issues = validation.passes
     .flatMap(p => p.issues || [])

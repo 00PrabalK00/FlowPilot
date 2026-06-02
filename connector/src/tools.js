@@ -8,7 +8,7 @@ export function makeExecutor(nr, config = {}, emit = () => {}) {
 
   async function execute(name, params = {}) {
     switch (name) {
-      case 'nodered.get_flows':       return normalizeFlows(await nr.getFlows());
+      case 'nodered.get_flows':       return presentFlows(normalizeFlows(await nr.getFlows()), params);
       case 'nodered.get_flow':        return nr.getFlow(params.id);
       case 'nodered.get_flow_state':  return nr.getFlowState();
       case 'nodered.get_diagnostics': return nr.getDiagnostics();
@@ -18,8 +18,8 @@ export function makeExecutor(nr, config = {}, emit = () => {}) {
       case 'nodered.security_preflight': return securityPreflight(nr);
 
       case 'nodered.create_snapshot': {
-        const flows = normalizeFlows(await nr.getFlows());
-        return { capturedAt: Date.now(), flows };
+        const { flows, rev } = normalizeFlows(await nr.getFlows());
+        return { capturedAt: Date.now(), flows, rev };
       }
       case 'nodered.deploy_patch':
         return nr.deploy(params.flows, params.deploymentType || 'nodes');
@@ -77,6 +77,58 @@ export function makeExecutor(nr, config = {}, emit = () => {}) {
 function normalizeFlows(res) {
   if (Array.isArray(res)) return { flows: res, rev: null };
   return { flows: res.flows || [], rev: res.rev || null };
+}
+
+function presentFlows(normalized, params = {}) {
+  const view = params.view || 'summary';
+  if (view === 'full') return normalized;
+
+  const flows = normalized.flows || [];
+  const tabs = flows.filter(n => n?.type === 'tab');
+  const tabFilter = String(params.tab || '').toLowerCase().trim();
+  const selectedTabs = tabFilter
+    ? tabs.filter(t => String(t.id).toLowerCase() === tabFilter || String(t.label || '').toLowerCase() === tabFilter)
+    : tabs;
+  const selectedIds = new Set(selectedTabs.map(t => t.id));
+  const nodes = flows.filter(n => n && n.type !== 'tab' && (!n.z || selectedIds.has(n.z)));
+
+  return {
+    rev: normalized.rev,
+    view: 'summary',
+    nodeCount: flows.length,
+    tabCount: tabs.length,
+    configCount: flows.filter(n => n && !n.z && n.type !== 'tab').length,
+    tabs: selectedTabs.map(t => ({
+      id: t.id,
+      label: t.label,
+      disabled: !!t.disabled,
+      nodes: nodes
+        .filter(n => n.z === t.id)
+        .map(n => summarizeFlowNode(n, !!params.includeCode))
+    })),
+    configs: flows
+      .filter(n => n && !n.z && n.type !== 'tab')
+      .map(n => ({ id: n.id, type: n.type, name: n.name || n.label || '' }))
+  };
+}
+
+function summarizeFlowNode(n, includeCode) {
+  const out = {
+    id: n.id,
+    type: n.type,
+    name: n.name || n.label || '',
+    wires: (n.wires || []).map(port => (port || []).filter(Boolean))
+  };
+  if (n.type === 'function') {
+    out.outputs = n.outputs || 1;
+    out.codeLines = String(n.func || '').split('\n').length;
+    out.codePreview = String(n.func || '').replace(/\s+/g, ' ').slice(0, 180);
+    if (includeCode) out.func = n.func || '';
+  }
+  if (n.topic) out.topic = n.topic;
+  if (n.broker) out.broker = n.broker;
+  if (n.scope) out.scope = n.scope;
+  return out;
 }
 
 function safeSettings(s) {

@@ -17,7 +17,7 @@ export const Runner = {
 // params are documented for the model; backend re-validates.
 export const TOOLS = {
   // ---- Node-RED (connector) ----
-  'nodered.get_flows':      { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.CONNECTOR, desc: 'Read full active flow config (credentials stripped).', params: {} },
+  'nodered.get_flows':      { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.CONNECTOR, desc: 'Read active flows. Default view=summary returns compact tabs/nodes for agents; use view=full only when exact deploy JSON is required.', params: { view: 'string?', tab: 'string?', includeCode: 'boolean?' } },
   'nodered.get_flow':       { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.CONNECTOR, desc: 'Read one flow tab by id.', params: { id: 'string' } },
   'nodered.get_flow_state': { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.CONNECTOR, desc: 'Runtime state (started/stopped).', params: {} },
   'nodered.get_diagnostics':{ perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.CONNECTOR, desc: 'Runtime diagnostics report.', params: {} },
@@ -36,7 +36,7 @@ export const TOOLS = {
   'code.lint_javascript':        { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.BACKEND, desc: 'Static checks: syntax, loops, forbidden APIs, secret leak.', params: { code: 'string' } },
 
   // ---- Flow draft + validation (backend) ----
-  'flow.create_draft':   { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.BACKEND, desc: 'Persist a proposed flow as a draft.', params: { name: 'string', flow: 'object' } },
+  'flow.create_draft':   { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.BACKEND, desc: 'Persist a proposed Node-RED patch draft. Include only changed/new nodes plus any new tab/config nodes; existing tab ids in z are allowed.', params: { name: 'string', flow: 'object' } },
   'flow.create_manual_control': { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.BACKEND, desc: 'Create a draft Node-RED manual-control flow using symbolic command inject buttons.', params: { name: 'string?', commandTopic: 'string?', commands: 'array?' } },
   'flow.validate_draft': { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.BACKEND, desc: 'Run 5 validation passes against a draft.', params: { draftId: 'string' } },
   'flow.simulate':       { perm: Perm.SAFE, risk: Risk.LOW, runner: Runner.BACKEND, desc: 'Inject test messages, compare expected outputs.', params: { draftId: 'string', messages: 'array?' } },

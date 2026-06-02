@@ -31,7 +31,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Live flows for the interactive canvas (read-only).
 app.get('/api/flows', async (req, res) => {
-  try { res.json(await invokeConnector(req.query.workspaceId || WS, 'nodered.get_flows', {})); }
+  try { res.json(await invokeConnector(req.query.workspaceId || WS, 'nodered.get_flows', { view: 'full' })); }
   catch (e) { res.status(502).json({ error: e.message, flows: [] }); }
 });
 

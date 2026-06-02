@@ -11,6 +11,10 @@ Not a chatbot that spits out flow JSON. A **guarded live operator** that watches
 drafts flows + function code, runs 5 validation passes, deploys safely behind approval, watches
 runtime logs, and rolls back on failure.
 
+## Demo
+
+![FlowPilot demo](docs/assets/flowpilot-demo.gif)
+
 > Core rule: the AI does **not** control Node-RED. It *proposes* actions. The permission engine
 > decides what's allowed. The user approves dangerous actions. The connector executes bounded
 > tools. Everything is audited.

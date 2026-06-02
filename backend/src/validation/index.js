@@ -19,7 +19,7 @@ export function validateFlow(flow, opts = {}) {
   const testMessages = opts.testMessages || [{ payload: 1 }];
 
   const passes = [
-    pass1_schema(nodes),
+    pass1_schema(nodes, opts),
     pass2_catalog(nodes, installedTypes),
     pass3_code(nodes),
     pass4_security(nodes),
@@ -30,7 +30,7 @@ export function validateFlow(flow, opts = {}) {
   return { ok, passes };
 }
 
-function pass1_schema(nodes) {
+function pass1_schema(nodes, opts = {}) {
   const issues = [];
   const ids = new Set();
   const tabIds = new Set(nodes.filter(n => n && typeof n === 'object' && (n.type === 'tab' || n.type === 'subflow')).map(n => n.id));
@@ -46,7 +46,7 @@ function pass1_schema(nodes) {
   }
   for (const n of nodes) {
     if (!n || typeof n !== 'object' || Array.isArray(n)) continue;
-    if (n.z && !tabIds.has(n.z)) issues.push(err('bad_tab_ref', `node ${n.id} z=${n.z} references missing tab`));
+    if (n.z && !tabIds.has(n.z) && !opts.allowExternalTabRefs) issues.push(err('bad_tab_ref', `node ${n.id} z=${n.z} references missing tab`));
     for (const port of n.wires || []) {
       for (const target of port || []) {
         if (!ids.has(target)) issues.push(err('dangling_wire', `node ${n.id} wires to missing node ${target}`));
