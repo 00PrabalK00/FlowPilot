@@ -1,0 +1,22 @@
+{
+  "name": "flowpilot",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Live Agentic Node-RED Control Plane",
+  "workspaces": [
+    "shared",
+    "connector",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:nodered": "node scripts/run-nodered.mjs",
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:connector": "npm --workspace connector run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "install:all": "npm install"
+  },
+  "dependencies": {
+    "node-red": "^4.1.10"
+  }
+}

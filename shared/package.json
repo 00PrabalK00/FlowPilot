@@ -1,0 +1,12 @@
+{
+  "name": "@flowpilot/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./events": "./events.js",
+    "./tools": "./tools.js",
+    "./risk": "./risk.js"
+  }
+}

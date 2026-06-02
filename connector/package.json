@@ -1,0 +1,14 @@
+{
+  "name": "@flowpilot/connector",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "flowpilot-connector": "src/index.js" },
+  "scripts": {
+    "dev": "node src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "@flowpilot/shared": "*"
+  }
+}
