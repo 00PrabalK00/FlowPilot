@@ -21,10 +21,11 @@ export default function SidebarChat({
   const [text, setText] = useState('');
   const end = useRef(null);
 
-  // merge chat bubbles + activity rows into one timeline
+  // merge chat bubbles + tool activity + live "thinking" into one timeline
   const feed = [
     ...messages.map((m) => ({ kind: 'msg', ts: m.ts || 0, ...m })),
-    ...events.filter((e) => ACTIVITY[e.type]).map((e) => ({ kind: 'act', ts: e.ts || 0, ...e }))
+    ...events.filter((e) => ACTIVITY[e.type]).map((e) => ({ kind: 'act', ts: e.ts || 0, ...e })),
+    ...events.filter((e) => e.type === 'agent.thinking').map((e) => ({ kind: 'think', ts: e.ts || 0, ...e }))
   ].sort((a, b) => a.ts - b.ts);
 
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length, events.length, approvals.length]);
@@ -54,17 +55,24 @@ export default function SidebarChat({
             <p className="sc-tip">Tip: click a node in the canvas → it becomes the subject of your message.</p>
           </div>
         )}
-        {feed.map((it, i) => it.kind === 'msg' ? (
-          it.role === 'assistant'
+        {feed.map((it, i) => {
+          if (it.kind === 'msg') return it.role === 'assistant'
             ? <div key={i} className="sc-msg assistant md" dangerouslySetInnerHTML={{ __html: md(it.text) }} />
-            : <div key={i} className="sc-msg user">{it.text}</div>
-        ) : (
-          <div key={i} className={`sc-act ${sev(it.type)}`}>
-            <span className="sc-ic"><Icon name={ACTIVITY[it.type]} /></span>
-            <span className="sc-tool">{it.tool || it.type.replace(/\./g, ' ')}</span>
-            <span className="sc-extra">{it.summary || (it.health ? `health ${it.health.ok ? 'OK' : 'FAIL'}` : '')}</span>
-          </div>
-        ))}
+            : <div key={i} className="sc-msg user">{it.text}</div>;
+          if (it.kind === 'think') return (
+            <div key={i} className="sc-think">
+              <Icon name={it.kind === 'tool' ? 'gear' : 'dotsmall'} size={11} />
+              <span>{String(it.text || '').replace(/\s+/g, ' ').slice(0, 120)}</span>
+            </div>
+          );
+          return (
+            <div key={i} className={`sc-act ${sev(it.type)}`}>
+              <span className="sc-ic"><Icon name={ACTIVITY[it.type]} /></span>
+              <span className="sc-tool">{it.tool || it.type.replace(/\./g, ' ')}</span>
+              <span className="sc-extra">{it.summary || (it.health ? `health ${it.health.ok ? 'OK' : 'FAIL'}` : '')}</span>
+            </div>
+          );
+        })}
 
         {approvals.map((a) => (
           <div key={a.id} className="sc-appr">

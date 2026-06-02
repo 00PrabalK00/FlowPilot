@@ -23,7 +23,9 @@ const CFG = {
 };
 
 const nr = new NodeRedClient({ baseUrl: CFG.noderedUrl, token: CFG.noderedToken });
-const exec = makeExecutor(nr, CFG);
+// emit lets tools (e.g. CLI brain streaming) push live events up the tunnel
+const emitEvent = (event) => send({ type: Frame.EVENT, event });
+const exec = makeExecutor(nr, CFG, emitEvent);
 
 let ws = null;
 let connected = false;

@@ -15,6 +15,7 @@ import { EventType, makeEvent } from '@flowpilot/shared/events';
 import { TOOLS } from '@flowpilot/shared/tools';
 import { status as providerStatus, setProviderConfig, setSelected, getProviderConfig, getSelected } from './secretStore.js';
 import { getProvider } from './providers/index.js';
+import { waitForApproval } from './approvalGate.js';
 
 const CLI_BRAINS = new Set(['claude-code', 'codex-cli', 'gemini-cli']);
 
@@ -55,10 +56,14 @@ app.post('/api/chat', async (req, res) => {
 
 // --- Provider settings (Settings page) ---
 // GET status (never returns raw keys). CLI brains listed separately.
-app.get('/api/providers', (_req, res) => {
+app.get('/api/providers', async (req, res) => {
+  let cliInstalled = {};
+  try { cliInstalled = await invokeConnector(req.query.workspaceId || WS, 'agent.detect_clis', {}, 12000); }
+  catch { /* connector offline -> unknown */ }
   res.json({
     ...providerStatus(),
     cliBrains: [...CLI_BRAINS],
+    cliInstalled,            // { 'claude-code': {ok,version}, ... }
     selected: getSelected()
   });
 });
@@ -149,6 +154,20 @@ app.post('/api/tool', async (req, res) => {
 
   const emit = (e) => publish(workspaceId, e);
   const ctx = { workspaceId, runId: null, prompt: '(cli-mcp)', emit };
+
+  // High-risk tools from the CLI/MCP brain still wait for a human Approve/Deny in the UI.
+  if (dec.decision === Decision.APPROVAL) {
+    const approvalId = Approvals.create(null, workspaceId, tool, params, dec.risk);
+    emit(makeEvent(EventType.APPROVAL_REQUIRED, { approvalId, tool, params, risk: dec.risk, reason: dec.reason, via: 'cli-mcp' }));
+    const { decision, by } = await waitForApproval(approvalId);
+    Approvals.decide(approvalId, decision, by);
+    if (decision !== 'approved') {
+      emit(makeEvent(EventType.APPROVAL_DENIED, { approvalId, tool }));
+      return res.status(403).json({ ok: false, error: 'denied by user', reason: `awaiting-approval ${tool} -> ${decision}` });
+    }
+    emit(makeEvent(EventType.APPROVAL_GRANTED, { approvalId, tool }));
+  }
+
   emit(makeEvent(EventType.TOOL_CALLED, { tool, params, risk: dec.risk, via: 'cli-mcp' }));
   try {
     const result = await dispatchTool(ctx, tool, params);

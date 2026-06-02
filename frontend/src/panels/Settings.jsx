@@ -47,16 +47,23 @@ export default function Settings({ open, onClose, onSelected }) {
         <div className="modal-h"><b>Settings · Brain</b><button onClick={onClose}><Icon name="x" /></button></div>
 
         <div className="set-sec">Use your CLI login <span className="set-hint">(no API key — uses the subscription you're already signed into)</span></div>
-        {(status?.cliBrains || []).map((c) => (
-          <div key={c} className={`set-row ${selected === c ? 'sel' : ''}`}>
-            <span className="set-name">{CLI_LABEL[c] || c}</span>
-            <Badge p={c} />
-            <span className="set-acts">
-              <button onClick={() => runTest(c)}>Test</button>
-              <button className="set-use" onClick={() => choose(c)}>{selected === c ? 'Selected' : 'Use'}</button>
-            </span>
-          </div>
-        ))}
+        {(status?.cliBrains || []).map((c) => {
+          const inst = status?.cliInstalled?.[c];
+          const installed = inst?.ok;
+          return (
+            <div key={c} className={`set-row ${selected === c ? 'sel' : ''}`}>
+              <span className="set-name">{CLI_LABEL[c] || c}</span>
+              {installed
+                ? <span className="set-saved" title={inst.version}>installed</span>
+                : <span className="set-missing">not found</span>}
+              <Badge p={c} />
+              <span className="set-acts">
+                <button onClick={() => runTest(c)} disabled={!installed}>Test</button>
+                <button className="set-use" onClick={() => choose(c)} disabled={!installed}>{selected === c ? 'Selected' : 'Use'}</button>
+              </span>
+            </div>
+          );
+        })}
 
         <div className="set-sec">Use an API key <span className="set-hint">(stored server-side in <code>secrets/</code>, never committed)</span></div>
         {API_PROVIDERS.map((p) => {

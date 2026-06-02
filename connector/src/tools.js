@@ -1,9 +1,9 @@
 // Connector-side guarded tool executor. Only runs CONNECTOR-runner tools.
 // Restricted local.* tools require explicit opt-in via config.allowLocal.
 import { securityPreflight } from './preflight.js';
-import { runCli, cliCheck } from './cliBrain.js';
+import { runCli, cliCheck, detectClis } from './cliBrain.js';
 
-export function makeExecutor(nr, config = {}) {
+export function makeExecutor(nr, config = {}, emit = () => {}) {
   const allowLocal = config.allowLocal || {}; // { read:[globs], write:[globs], commands:[allowed] }
 
   async function execute(name, params = {}) {
@@ -44,11 +44,13 @@ export function makeExecutor(nr, config = {}) {
         return nr._req('POST', `/inject/${params.nodeId}`).catch(e => ({ injected: false, error: e.message }));
       // Delegate a chat turn to a locally-installed, logged-in AI CLI (claude/codex/gemini).
       case 'agent.run_cli':
-        return runCli(params.cli || 'claude-code', params.prompt, config);
+        return runCli(params.cli || 'claude-code', params.prompt, config, emit);
       case 'agent.run_claude_code':
-        return runCli('claude-code', params.prompt, config);
+        return runCli('claude-code', params.prompt, config, emit);
       case 'agent.cli_check':
         return cliCheck(params.cli || 'claude-code', config);
+      case 'agent.detect_clis':
+        return detectClis();
 
       case 'runtime.send_safe_command':
         return sendSafeCommand(config, params);

@@ -176,3 +176,8 @@ svg text { fill: #e6edf3; font: 11px monospace; }
 .sc-msg.md table { border-collapse: collapse; font-size: 12px; margin: 6px 0; }
 .sc-msg.md th, .sc-msg.md td { border: 1px solid var(--line); padding: 3px 7px; }
 .sc-msg.md a { color: var(--acc); }
+
+/* live "thinking" ticker rows in sidebar chat */
+.sc-think { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); font-style: italic; padding: 0 4px; opacity: .85; }
+.sc-think .oct { opacity: .7; }
+.set-missing { color: var(--bad); font-size: 11px; }

@@ -11,7 +11,7 @@ const FILE = join(DIR, 'providers.json');
 
 mkdirSync(DIR, { recursive: true });
 
-const DEFAULT = { selected: process.env.FLOWPILOT_PROVIDER || 'mock', providers: {} };
+const DEFAULT = { selected: process.env.FLOWPILOT_PROVIDER || 'claude-code', providers: {} };
 
 function load() {
   if (!existsSync(FILE)) return structuredClone(DEFAULT);

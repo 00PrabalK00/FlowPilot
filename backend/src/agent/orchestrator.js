@@ -9,6 +9,9 @@ import { publish } from '../eventBus.js';
 import { Runs, ToolCalls, Approvals, audit } from '../store.js';
 import { redactObject } from '../redact.js';
 import { getProviderConfig } from '../secretStore.js';
+import { waitForApproval, resolveApproval } from '../approvalGate.js';
+
+export { resolveApproval };
 
 const SYSTEM = `You are FlowPilot, a guarded operator for Node-RED.
 You do NOT own Node-RED — you propose actions that the permission engine and the user approve.
@@ -19,17 +22,6 @@ Rules:
 - For robotics, prefer symbolic missions (start_patrol_route) over raw velocity commands; never command motion without a live safety/state check.
 - Always: read current flows + installed nodes, draft, validate, diff, then request approval before deploy.
 Be concise and explain risk + rollback.`;
-
-// Pending approvals: approvalId -> { resolve }
-const pendingApprovals = new Map();
-
-export function resolveApproval(approvalId, decision, by) {
-  const p = pendingApprovals.get(approvalId);
-  if (!p) return false;
-  pendingApprovals.delete(approvalId);
-  p.resolve({ decision, by });
-  return true;
-}
 
 export async function runAgent({ workspaceId, prompt, providerName, policy = {}, privacyMode }) {
   const provider = getProvider(providerName);
@@ -112,13 +104,6 @@ async function handleToolCall(ctx, policy, call, privacy) {
     emit(makeEvent(EventType.TOOL_FAILED, { tool: call.name, error: e.message }));
     return { error: e.message };
   }
-}
-
-function waitForApproval(approvalId, timeoutMs = 10 * 60 * 1000) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => { pendingApprovals.delete(approvalId); resolve({ decision: 'denied', by: 'timeout' }); }, timeoutMs);
-    pendingApprovals.set(approvalId, { resolve: (v) => { clearTimeout(timer); resolve(v); } });
-  });
 }
 
 function brief(result) {
