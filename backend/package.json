@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node src/index.js flowpilot-backend",
-    "start": "node src/index.js"
+    "dev": "node --env-file-if-exists=.env src/index.js flowpilot-backend",
+    "start": "node --env-file-if-exists=.env src/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -37,7 +37,7 @@ export async function runAgent({ workspaceId, prompt, providerName, policy = {},
   const ctx = { workspaceId, runId, prompt, emit };
 
   // cloud providers get redacted tool results; local/mock get raw.
-  const cloud = provider.name === 'claude' || provider.name === 'openai';
+  const cloud = ['claude', 'openai', 'gemini'].includes(provider.name);
   const privacy = privacyMode || (cloud ? 'redacted' : 'full');
 
   emit(makeEvent(EventType.AGENT_STARTED, { prompt, provider: provider.name }));
