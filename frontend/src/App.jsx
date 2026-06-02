@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows, getProviders } from './api.js';
+import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows, getProviders, getFiles, restoreFile } from './api.js';
 import ChatPanel from './panels/ChatPanel.jsx';
 import ActionStream from './panels/ActionStream.jsx';
 import FlowCanvas from './panels/FlowCanvas.jsx';
@@ -23,6 +23,7 @@ export default function App() {
   const [selected, setSelected] = useState(null);
   const [brain, setBrain] = useState('claude-code');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [files, setFiles] = useState([]);
   const seenDraft = useRef(null);
   const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 
@@ -33,6 +34,7 @@ export default function App() {
     });
     refreshSnapshots();
     refreshLiveFlows();
+    refreshFiles();
     getProviders().then((p) => { if (p?.selected) setBrain(p.selected); }).catch(() => {});
     // when embedded in the Node-RED editor, receive the node selected in the real canvas
     const onMsg = (ev) => { if (ev.data?.type === 'flowpilot:select' && ev.data.node) setSelected(ev.data.node); };
@@ -56,6 +58,7 @@ export default function App() {
         setValidation({ ok: e.type.endsWith('passed'), passes: e.passes }); break;
       case 'runtime.log': case 'runtime.error.detected':
         setLogs((p) => [...p.slice(-300), { ...e }]); break;
+      case 'file.changed': refreshFiles(); break;
       case 'connector.status': setOnline(!!e.online); break;
       default: break;
     }
@@ -67,6 +70,8 @@ export default function App() {
   }
   async function refreshSnapshots() { try { setSnapshots(await getSnapshots()); } catch {} }
   async function refreshLiveFlows() { try { const r = await getLiveFlows(); setLiveFlows(r.flows || []); } catch {} }
+  async function refreshFiles() { try { setFiles(await getFiles()); } catch {} }
+  async function revertFile(path) { await restoreFile(path); refreshFiles(); }
 
   async function send(text) {
     setMessages((p) => [...p, { role: 'user', text, ts: Date.now() }]);
@@ -93,7 +98,7 @@ export default function App() {
       <>
         <SidebarChat
           messages={messages} events={events} approvals={approvals}
-          online={online} running={running} brain={brain}
+          online={online} running={running} brain={brain} files={files} onRevert={revertFile}
           onOpenSettings={() => setSettingsOpen(true)}
           selected={selected} onClearSelect={() => setSelected(null)}
           onAction={sendAboutSelected} onSend={send} />

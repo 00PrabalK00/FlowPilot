@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getProviders, saveProvider, testProvider } from '../api.js';
+import { getProviders, saveProvider, testProvider, setAgentMode } from '../api.js';
 import Icon from '../Icon.jsx';
 
 // Settings: pick the brain (CLI login or API key) + Test connection.
@@ -20,9 +20,15 @@ export default function Settings({ open, onClose, onSelected }) {
   const [keys, setKeys] = useState({});
   const [models, setModels] = useState({});
   const [test, setTest] = useState({});
+  const [dirs, setDirs] = useState('');
 
-  useEffect(() => { if (open) getProviders().then(setStatus); }, [open]);
+  useEffect(() => { if (open) getProviders().then((s) => { setStatus(s); setDirs((s.agent?.dirs || []).join('\n')); }); }, [open]);
   if (!open) return null;
+
+  function saveAgent(mode) {
+    const d = dirs.split(/[\n,]/).map((x) => x.trim()).filter(Boolean);
+    setAgentMode({ mode, dirs: d }).then((agent) => setStatus((s) => ({ ...s, agent })));
+  }
 
   const selected = status?.selected;
 
@@ -100,7 +106,15 @@ export default function Settings({ open, onClose, onSelected }) {
           );
         })}
 
-        <div className="set-foot">Active brain: <b>{selected}</b></div>
+        <div className="set-sec">Agent mode <span className="set-hint">(only applies to CLI brains)</span></div>
+        <div className="set-row col">
+          <label className="set-radio"><input type="radio" name="amode" checked={status?.agent?.mode !== 'full'} onChange={() => saveAgent('tools')} /> Node-RED tools only <span className="set-hint">— safe; cannot edit files</span></label>
+          <label className="set-radio"><input type="radio" name="amode" checked={status?.agent?.mode === 'full'} onChange={() => saveAgent('full')} /> Full coding agent <span className="set-hint">— Edit/Write/Bash in allowed dirs; changes tracked + revertable</span></label>
+          <textarea className="set-dirs" rows={3} placeholder="Allowed directories (one per line) the agent may edit&#10;e.g. D:\\Projects\\my-robot" value={dirs} onChange={(e) => setDirs(e.target.value)} />
+          <button onClick={() => saveAgent(status?.agent?.mode || 'tools')}>Save dirs</button>
+        </div>
+
+        <div className="set-foot">Active brain: <b>{selected}</b> · agent: <b>{status?.agent?.mode || 'tools'}</b></div>
       </div>
     </div>
   );

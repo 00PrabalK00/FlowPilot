@@ -13,7 +13,8 @@ import { dispatchTool } from './tools/dispatch.js';
 import { evaluate, Decision } from './permission.js';
 import { EventType, makeEvent } from '@flowpilot/shared/events';
 import { TOOLS } from '@flowpilot/shared/tools';
-import { status as providerStatus, setProviderConfig, setSelected, getProviderConfig, getSelected } from './secretStore.js';
+import { status as providerStatus, setProviderConfig, setSelected, getProviderConfig, getSelected, getAgent, setAgent } from './secretStore.js';
+import { FileChanges } from './store.js';
 import { getProvider } from './providers/index.js';
 import { waitForApproval } from './approvalGate.js';
 
@@ -64,8 +65,25 @@ app.get('/api/providers', async (req, res) => {
     ...providerStatus(),
     cliBrains: [...CLI_BRAINS],
     cliInstalled,            // { 'claude-code': {ok,version}, ... }
+    agent: getAgent(),       // { mode, dirs }
     selected: getSelected()
   });
+});
+
+// Agent mode (Node-RED tools only vs full coding agent with allowed dirs).
+app.post('/api/agent', (req, res) => res.json(setAgent(req.body || {})));
+
+// File changes the agent made + revert.
+app.get('/api/files', (req, res) => res.json(FileChanges.list(req.query.workspaceId || WS)));
+app.post('/api/files/restore', async (req, res) => {
+  const ws = req.body?.workspaceId || WS;
+  const path = req.body?.path;
+  if (!path) return res.status(400).json({ error: 'path required' });
+  try {
+    const r = await invokeConnector(ws, 'agent.restore_file', { path });
+    if (r.ok) { FileChanges.markReverted(ws, path); publish(ws, makeEvent(EventType.FILE_CHANGED, { path, tool: 'reverted', reverted: true })); }
+    res.json(r);
+  } catch (e) { res.status(502).json({ ok: false, error: e.message }); }
 });
 
 // Save an API key / model and/or select a provider.

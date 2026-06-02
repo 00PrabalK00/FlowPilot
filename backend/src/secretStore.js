@@ -59,6 +59,20 @@ export function setProviderConfig(name, { apiKey, model, baseUrl } = {}) {
 
 export function clearProvider(name) { delete state.providers[name]; save(state); }
 
+// Agent mode: 'tools' (Node-RED MCP tools only, safe) | 'full' (Edit/Write/Bash in allowed dirs).
+export function getAgent() {
+  return { mode: 'tools', dirs: [], ...(state.agent || {}) };
+}
+export function setAgent(patch = {}) {
+  const cur = getAgent();
+  state.agent = {
+    mode: patch.mode === 'full' || patch.mode === 'tools' ? patch.mode : cur.mode,
+    dirs: Array.isArray(patch.dirs) ? patch.dirs.filter(Boolean) : cur.dirs
+  };
+  save(state);
+  return state.agent;
+}
+
 // SAFE status for the API/UI — NEVER includes the key itself.
 export function status() {
   const names = ['claude', 'openai', 'gemini', 'ollama', 'mock'];

@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { Frame } from '@flowpilot/shared/events';
 import { publish } from './eventBus.js';
+import { FileChanges } from './store.js';
 
 const CONNECTOR_TOKEN = process.env.CONNECTOR_TOKEN || 'dev-connector-token';
 
@@ -32,7 +33,9 @@ export function registerConnector(ws) {
         frame.ok ? p.resolve(frame.result) : p.reject(Object.assign(new Error(frame.error || 'tool failed'), { body: frame.body }));
       }
     } else if (frame.type === Frame.EVENT && workspaceId) {
-      publish(workspaceId, frame.event);
+      const ev = frame.event;
+      if (ev?.type === 'file.changed' && ev.path) FileChanges.record(workspaceId, ev.path, ev.tool);
+      publish(workspaceId, ev);
     } else if (frame.type === Frame.PONG) { /* keepalive */ }
   });
 

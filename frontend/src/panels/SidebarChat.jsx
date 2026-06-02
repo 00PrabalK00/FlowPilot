@@ -15,7 +15,7 @@ const ACTIVITY = {
 };
 
 export default function SidebarChat({
-  messages, events, approvals, online, running, brain, onOpenSettings,
+  messages, events, approvals, online, running, brain, onOpenSettings, files = [], onRevert,
   selected, onClearSelect, onAction, onSend
 }) {
   const [text, setText] = useState('');
@@ -87,6 +87,20 @@ export default function SidebarChat({
         {running && <div className="sc-act running"><span className="sc-ic"><Icon name="sync" spin /></span> working…</div>}
         <div ref={end} />
       </div>
+
+      {files.length > 0 && (
+        <div className="sc-files">
+          <div className="sc-files-h"><Icon name="pencil" size={11} /> Files changed by agent</div>
+          {files.slice(0, 8).map((f) => (
+            <div key={f.id} className={`sc-file ${f.reverted ? 'rev' : ''}`}>
+              <span className="sc-fpath" title={f.path}>{f.path.split(/[\\/]/).pop()}</span>
+              {f.reverted
+                ? <span className="sc-frev">reverted</span>
+                : <button className="sc-frevbtn" onClick={() => onRevert(f.path)}>Revert</button>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {selected && (
         <div className="sc-sel">

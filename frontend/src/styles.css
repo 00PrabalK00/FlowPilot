@@ -183,3 +183,15 @@ svg text { fill: #e6edf3; font: 11px monospace; }
 .set-missing { color: var(--bad); font-size: 11px; }
 
 .set-modelsel { background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-size: 11px; max-width: 130px; }
+
+/* files-changed strip + agent settings */
+.sc-files { border-top: 1px solid var(--line); background: #161108; padding: 7px 10px; }
+.sc-files-h { font-size: 11px; color: var(--warn); margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+.sc-file { display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 12px; }
+.sc-fpath { font-family: monospace; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-file.rev .sc-fpath { opacity: .5; text-decoration: line-through; }
+.sc-frevbtn { padding: 2px 9px; font-size: 11px; border-color: var(--bad); color: #ffb3ae; }
+.sc-frev { font-size: 11px; color: var(--dim); }
+.set-radio { display: block; padding: 4px 0; font-size: 13px; }
+.set-radio input { margin-right: 7px; }
+.set-dirs { width: 100%; background: #0d1117; color: var(--txt); border: 1px solid var(--line); border-radius: 6px; padding: 7px; font: 12px monospace; margin: 6px 0; resize: vertical; }

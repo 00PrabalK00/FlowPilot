@@ -1,7 +1,7 @@
 // Connector-side guarded tool executor. Only runs CONNECTOR-runner tools.
 // Restricted local.* tools require explicit opt-in via config.allowLocal.
 import { securityPreflight } from './preflight.js';
-import { runCli, cliCheck, detectClis } from './cliBrain.js';
+import { runCli, cliCheck, detectClis, restoreFile } from './cliBrain.js';
 
 export function makeExecutor(nr, config = {}, emit = () => {}) {
   const allowLocal = config.allowLocal || {}; // { read:[globs], write:[globs], commands:[allowed] }
@@ -44,13 +44,16 @@ export function makeExecutor(nr, config = {}, emit = () => {}) {
         return nr._req('POST', `/inject/${params.nodeId}`).catch(e => ({ injected: false, error: e.message }));
       // Delegate a chat turn to a locally-installed, logged-in AI CLI (claude/codex/gemini).
       case 'agent.run_cli':
-        return runCli(params.cli || 'claude-code', params.prompt, { ...config, cliModel: params.model || config.cliModel }, emit);
+        return runCli(params.cli || 'claude-code', params.prompt,
+          { ...config, cliModel: params.model || config.cliModel, agentMode: params.agentMode, agentDirs: params.agentDirs }, emit);
       case 'agent.run_claude_code':
         return runCli('claude-code', params.prompt, { ...config, cliModel: params.model || config.cliModel }, emit);
       case 'agent.cli_check':
         return cliCheck(params.cli || 'claude-code', config);
       case 'agent.detect_clis':
         return detectClis();
+      case 'agent.restore_file':
+        return restoreFile(params.path);
 
       case 'runtime.send_safe_command':
         return sendSafeCommand(config, params);

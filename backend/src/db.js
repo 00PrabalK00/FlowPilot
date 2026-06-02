@@ -66,6 +66,15 @@ CREATE TABLE IF NOT EXISTS approvals (
   decided_by TEXT
 );
 
+CREATE TABLE IF NOT EXISTS file_changes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workspace_id TEXT,
+  created_at INTEGER NOT NULL,
+  path TEXT,
+  tool TEXT,
+  reverted INTEGER DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS audit_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   workspace_id TEXT,

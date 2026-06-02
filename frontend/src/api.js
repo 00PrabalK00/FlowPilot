@@ -48,6 +48,15 @@ export async function testProvider(body) {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
   })).json();
 }
+export async function setAgentMode(body) {
+  return (await fetch('/api/agent', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).json();
+}
+export async function getFiles() {
+  try { return await (await fetch(`/api/files?workspaceId=${WS}`)).json(); } catch { return []; }
+}
+export async function restoreFile(path) {
+  return (await fetch('/api/files/restore', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path, workspaceId: WS }) })).json();
+}
 
 // SSE subscription. onEvent(evt). Returns close fn.
 export function subscribeEvents(onEvent) {

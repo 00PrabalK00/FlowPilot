@@ -65,6 +65,21 @@ export const ToolCalls = {
   }
 };
 
+export const FileChanges = {
+  record(workspaceId, path, tool) {
+    // collapse repeats of the same path (keep latest)
+    db.prepare('DELETE FROM file_changes WHERE workspace_id=? AND path=? AND reverted=0').run(workspaceId, path);
+    db.prepare('INSERT INTO file_changes (workspace_id,created_at,path,tool) VALUES (?,?,?,?)')
+      .run(workspaceId, now(), path, tool || null);
+  },
+  list(workspaceId) {
+    return db.prepare('SELECT id,created_at,path,tool,reverted FROM file_changes WHERE workspace_id=? ORDER BY created_at DESC LIMIT 100').all(workspaceId);
+  },
+  markReverted(workspaceId, path) {
+    db.prepare('UPDATE file_changes SET reverted=1 WHERE workspace_id=? AND path=?').run(workspaceId, path);
+  }
+};
+
 export const Approvals = {
   create(runId, workspaceId, tool, params, riskLevel) {
     const id = 'appr_' + randomUUID().slice(0, 8);

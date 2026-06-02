@@ -28,6 +28,8 @@ export const EventType = {
   RUNTIME_LOG: 'runtime.log',
   HEALTH_CHECK: 'health.check',
 
+  FILE_CHANGED: 'file.changed',
+
   ROLLBACK_STARTED: 'rollback.started',
   ROLLBACK_COMPLETED: 'rollback.completed',
 
