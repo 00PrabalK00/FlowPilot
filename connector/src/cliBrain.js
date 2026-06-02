@@ -18,7 +18,7 @@ const CLI_CMD = { 'claude-code': 'claude', 'codex-cli': 'codex', 'gemini-cli': '
 
 export async function runCli(cli, prompt, config = {}, emit = () => {}) {
   if (!prompt || !prompt.trim()) return { ok: false, text: '(empty prompt)' };
-  const cmd = config.cliCommand || CLI_CMD[cli] || 'claude';
+  const cmd = CLI_CMD[cli] || config.cliCommand || 'claude'; // per-CLI map wins over global override
 
   let args, parse = 'text';
   if (cli === 'codex-cli') {
@@ -84,7 +84,7 @@ function handleStream(obj, emit, setResult) {
 
 // Connection test: does the CLI exist + respond to --version?
 export function cliCheck(cli, config = {}) {
-  const cmd = config.cliCommand || CLI_CMD[cli] || cli;
+  const cmd = CLI_CMD[cli] || config.cliCommand || cli; // per-CLI map wins over global override
   return new Promise((resolve) => {
     let out = '';
     const child = spawn(cmd, ['--version'], { shell: IS_WIN });
