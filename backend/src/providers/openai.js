@@ -2,10 +2,10 @@
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 const BASE = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
 
-export async function openaiChat({ system, messages, tools }) {
-  const key = process.env.OPENAI_API_KEY;
+export async function openaiChat({ system, messages, tools, apiKey, model, baseUrl }) {
+  const key = apiKey || process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not set');
-  return openaiCompatChat({ base: BASE, key, model: MODEL, system, messages, tools });
+  return openaiCompatChat({ base: baseUrl || BASE, key, model: model || MODEL, system, messages, tools });
 }
 
 // shared by openai + local openai-compatible servers + ollama(openai mode)

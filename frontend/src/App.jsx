@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows } from './api.js';
+import { subscribeEvents, startChat, getDraft, getSnapshots, rollback, getLiveFlows, getProviders } from './api.js';
 import ChatPanel from './panels/ChatPanel.jsx';
 import ActionStream from './panels/ActionStream.jsx';
 import FlowCanvas from './panels/FlowCanvas.jsx';
 import DiffPanel from './panels/DiffPanel.jsx';
 import LogsPanel from './panels/LogsPanel.jsx';
 import SidebarChat from './panels/SidebarChat.jsx';
+import Settings from './panels/Settings.jsx';
+import Icon from './Icon.jsx';
 
 export default function App() {
   const [events, setEvents] = useState([]);
@@ -20,6 +22,7 @@ export default function App() {
   const [liveFlows, setLiveFlows] = useState([]);
   const [selected, setSelected] = useState(null);
   const [brain, setBrain] = useState('claude-code');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const seenDraft = useRef(null);
   const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 
@@ -30,6 +33,7 @@ export default function App() {
     });
     refreshSnapshots();
     refreshLiveFlows();
+    getProviders().then((p) => { if (p?.selected) setBrain(p.selected); }).catch(() => {});
     // when embedded in the Node-RED editor, receive the node selected in the real canvas
     const onMsg = (ev) => { if (ev.data?.type === 'flowpilot:select' && ev.data.node) setSelected(ev.data.node); };
     window.addEventListener('message', onMsg);
@@ -86,11 +90,15 @@ export default function App() {
 
   if (EMBED) {
     return (
-      <SidebarChat
-        messages={messages} events={events} approvals={approvals}
-        online={online} running={running} brain={brain} setBrain={setBrain}
-        selected={selected} onClearSelect={() => setSelected(null)}
-        onAction={sendAboutSelected} onSend={send} />
+      <>
+        <SidebarChat
+          messages={messages} events={events} approvals={approvals}
+          online={online} running={running} brain={brain}
+          onOpenSettings={() => setSettingsOpen(true)}
+          selected={selected} onClearSelect={() => setSelected(null)}
+          onAction={sendAboutSelected} onSend={send} />
+        <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSelected={setBrain} />
+      </>
     );
   }
 
@@ -100,12 +108,7 @@ export default function App() {
         <img className="logo-img" src="/logo.png" alt="FlowPilot" />
         <span className="logo">FlowPilot</span>
         <span className="sub">Live Agentic Node-RED Control Plane</span>
-        <label className="brainsel">brain&nbsp;
-          <select value={brain} onChange={(e) => setBrain(e.target.value)}>
-            <option value="claude-code">Claude Code (your login)</option>
-            <option value="mock">Mock (offline demo)</option>
-          </select>
-        </label>
+        <button className="brainbtn" onClick={() => setSettingsOpen(true)}><Icon name="gear" /> brain: {brain}</button>
         <span className={`badge ${online ? 'on' : 'off'}`}>{online ? '● connector online' : '○ connector offline'}</span>
         {running && <span className="badge run">agent working…</span>}
       </header>
@@ -118,6 +121,7 @@ export default function App() {
         <DiffPanel draft={draft} validation={validation} snapshots={snapshots} onRollback={(id) => rollback(id).then(refreshSnapshots)} />
         <LogsPanel logs={logs} />
       </div>
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} onSelected={setBrain} />
     </div>
   );
 }

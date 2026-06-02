@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { decideApproval } from '../api.js';
+import { md } from '../md.js';
+import Icon from '../Icon.jsx';
 
 // Purpose-built chat UI for the Node-RED editor sidebar.
 // One column: chat bubbles + inline tool activity + node context + approvals.
 
 const ACTIVITY = {
-  'tool.called': '⚙', 'tool.completed': '✓', 'tool.failed': '✕',
-  'flow.draft.created': '✎', 'flow.validation.passed': '✔', 'flow.validation.failed': '✕',
-  'deploy.started': '⇪', 'deploy.completed': '✔', 'deploy.failed': '✕',
-  'health.check': '♥', 'rollback.started': '↶', 'rollback.completed': '✔',
-  'approval.granted': '✔', 'approval.denied': '✕'
+  'tool.called': 'gear', 'tool.completed': 'check', 'tool.failed': 'x',
+  'flow.draft.created': 'pencil', 'flow.validation.passed': 'check', 'flow.validation.failed': 'x',
+  'deploy.started': 'rocket', 'deploy.completed': 'check', 'deploy.failed': 'x',
+  'health.check': 'pulse', 'rollback.started': 'sync', 'rollback.completed': 'check',
+  'approval.granted': 'check', 'approval.denied': 'x'
 };
 
 export default function SidebarChat({
-  messages, events, approvals, online, running, brain, setBrain,
+  messages, events, approvals, online, running, brain, onOpenSettings,
   selected, onClearSelect, onAction, onSend
 }) {
   const [text, setText] = useState('');
@@ -39,10 +41,9 @@ export default function SidebarChat({
       <header className="sc-bar">
         <img className="sc-logo" src="/logo.png" alt="" />
         <b className="sc-name">FlowPilot</b>
-        <select className="sc-brain" value={brain} onChange={(e) => setBrain(e.target.value)}>
-          <option value="claude-code">Claude Code</option>
-          <option value="mock">Mock</option>
-        </select>
+        <button className="sc-gear" onClick={onOpenSettings} title="Settings · brain">
+          <Icon name="gear" size={15} /> <span className="sc-brainlbl">{brain}</span>
+        </button>
         <span className={`sc-dot ${online ? 'on' : 'off'}`} title={online ? 'connector online' : 'connector offline'} />
       </header>
 
@@ -54,10 +55,12 @@ export default function SidebarChat({
           </div>
         )}
         {feed.map((it, i) => it.kind === 'msg' ? (
-          <div key={i} className={`sc-msg ${it.role}`}>{it.text}</div>
+          it.role === 'assistant'
+            ? <div key={i} className="sc-msg assistant md" dangerouslySetInnerHTML={{ __html: md(it.text) }} />
+            : <div key={i} className="sc-msg user">{it.text}</div>
         ) : (
           <div key={i} className={`sc-act ${sev(it.type)}`}>
-            <span className="sc-ic">{ACTIVITY[it.type]}</span>
+            <span className="sc-ic"><Icon name={ACTIVITY[it.type]} /></span>
             <span className="sc-tool">{it.tool || it.type.replace(/\./g, ' ')}</span>
             <span className="sc-extra">{it.summary || (it.health ? `health ${it.health.ok ? 'OK' : 'FAIL'}` : '')}</span>
           </div>
@@ -65,7 +68,7 @@ export default function SidebarChat({
 
         {approvals.map((a) => (
           <div key={a.id} className="sc-appr">
-            <div className="sc-appr-h">⚠ Approve <code>{a.tool}</code> <span className={`risk ${a.risk}`}>{a.risk}</span></div>
+            <div className="sc-appr-h"><Icon name="alert" /> Approve <code>{a.tool}</code> <span className={`risk ${a.risk}`}>{a.risk}</span></div>
             <div className="sc-appr-b">
               <button className="approve" onClick={() => decideApproval(a.id, 'approved')}>Approve</button>
               <button className="deny" onClick={() => decideApproval(a.id, 'denied')}>Deny</button>
@@ -73,7 +76,7 @@ export default function SidebarChat({
           </div>
         ))}
 
-        {running && <div className="sc-act running"><span className="sc-ic spin">◐</span> working…</div>}
+        {running && <div className="sc-act running"><span className="sc-ic"><Icon name="sync" spin /></span> working…</div>}
         <div ref={end} />
       </div>
 
@@ -96,7 +99,7 @@ export default function SidebarChat({
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) submit(e); }}
           placeholder={selected ? `Ask about "${selected.name || selected.type}"…` : 'Message FlowPilot…  (Enter to send)'} />
-        <button disabled={running}>➤</button>
+        <button disabled={running} title="Send"><Icon name="send" size={16} /></button>
       </form>
     </div>
   );

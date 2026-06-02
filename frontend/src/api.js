@@ -35,6 +35,20 @@ export async function rollback(snapshotId) {
   });
 }
 
+export async function getProviders() {
+  return (await fetch('/api/providers')).json();
+}
+export async function saveProvider(body) {
+  return (await fetch('/api/providers', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
+  })).json();
+}
+export async function testProvider(body) {
+  return (await fetch('/api/providers/test', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
+  })).json();
+}
+
 // SSE subscription. onEvent(evt). Returns close fn.
 export function subscribeEvents(onEvent) {
   const es = new EventSource(`/api/events?workspaceId=${WS}`);

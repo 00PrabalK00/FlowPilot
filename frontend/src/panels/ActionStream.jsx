@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from 'react';
+import Icon from '../Icon.jsx';
 
 // Streams actual tool STATE (section 7) — not just model text.
 const ICON = {
-  'agent.started': '▶', 'agent.done': '✔', 'agent.error': '✖',
-  'tool.called': '⚙', 'tool.completed': '✓', 'tool.failed': '✖',
-  'flow.draft.created': '✎', 'flow.validation.passed': '✔', 'flow.validation.failed': '✖',
-  'approval.required': '⚠', 'approval.granted': '✔', 'approval.denied': '✖',
-  'deploy.started': '⇪', 'deploy.completed': '✔', 'deploy.failed': '✖',
-  'health.check': '♥', 'rollback.started': '↶', 'rollback.completed': '✔',
-  'connector.status': '🔌', 'runtime.error.detected': '✖'
+  'agent.started': 'rocket', 'agent.done': 'check', 'agent.error': 'x',
+  'tool.called': 'gear', 'tool.completed': 'check', 'tool.failed': 'x',
+  'flow.draft.created': 'pencil', 'flow.validation.passed': 'check', 'flow.validation.failed': 'x',
+  'approval.required': 'alert', 'approval.granted': 'check', 'approval.denied': 'x',
+  'deploy.started': 'rocket', 'deploy.completed': 'check', 'deploy.failed': 'x',
+  'health.check': 'pulse', 'rollback.started': 'sync', 'rollback.completed': 'check',
+  'connector.status': 'dot', 'runtime.error.detected': 'x'
 };
 const HIDE = new Set(['agent.message', 'runtime.log']);
 
@@ -23,7 +24,7 @@ export default function ActionStream({ events }) {
       <div className="cards">
         {shown.map((e, i) => (
           <div key={i} className={`card ${sev(e.type)}`}>
-            <span className="ic">{ICON[e.type] || '•'}</span>
+            <span className="ic"><Icon name={ICON[e.type] || 'dot'} /></span>
             <span className="ty">{e.type}</span>
             <span className="dt">{detail(e)}</span>
           </div>

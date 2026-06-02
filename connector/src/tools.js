@@ -1,7 +1,7 @@
 // Connector-side guarded tool executor. Only runs CONNECTOR-runner tools.
 // Restricted local.* tools require explicit opt-in via config.allowLocal.
 import { securityPreflight } from './preflight.js';
-import { runClaudeCode } from './cliBrain.js';
+import { runCli, cliCheck } from './cliBrain.js';
 
 export function makeExecutor(nr, config = {}) {
   const allowLocal = config.allowLocal || {}; // { read:[globs], write:[globs], commands:[allowed] }
@@ -42,10 +42,13 @@ export function makeExecutor(nr, config = {}) {
       case 'runtime.inject_test_message':
         // Node-RED inject is triggered via /inject/:id on the editor; use comms-less approach:
         return nr._req('POST', `/inject/${params.nodeId}`).catch(e => ({ injected: false, error: e.message }));
-      // Delegate a chat turn to the locally-installed, logged-in Claude Code CLI.
-      // Claude Code runs its own agent loop and controls Node-RED via the flowpilot MCP tools.
+      // Delegate a chat turn to a locally-installed, logged-in AI CLI (claude/codex/gemini).
+      case 'agent.run_cli':
+        return runCli(params.cli || 'claude-code', params.prompt, config);
       case 'agent.run_claude_code':
-        return runClaudeCode(params.prompt, config);
+        return runCli('claude-code', params.prompt, config);
+      case 'agent.cli_check':
+        return cliCheck(params.cli || 'claude-code', config);
 
       case 'runtime.send_safe_command':
         return sendSafeCommand(config, params);

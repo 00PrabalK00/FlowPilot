@@ -13,6 +13,10 @@ import { dispatchTool } from './tools/dispatch.js';
 import { evaluate, Decision } from './permission.js';
 import { EventType, makeEvent } from '@flowpilot/shared/events';
 import { TOOLS } from '@flowpilot/shared/tools';
+import { status as providerStatus, setProviderConfig, setSelected, getProviderConfig, getSelected } from './secretStore.js';
+import { getProvider } from './providers/index.js';
+
+const CLI_BRAINS = new Set(['claude-code', 'codex-cli', 'gemini-cli']);
 
 const PORT = process.env.PORT || 8787;
 const app = express();
@@ -38,14 +42,62 @@ app.get('/api/connector/status', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   const { prompt, provider, role = 'maintainer', runtimeMode = 'design', enabledRestricted = [], workspaceId = WS } = req.body || {};
   if (!prompt) return res.status(400).json({ error: 'prompt required' });
-  // provider 'claude-code' (or 'cli') delegates the whole turn to the local Claude Code login.
-  if (provider === 'claude-code' || provider === 'cli') {
-    runCliChat({ workspaceId, prompt, cli: 'claude-code' }).catch(() => {});
+  // A CLI brain delegates the whole turn to the user's local login; otherwise use the API tool-loop.
+  const chosen = provider || getSelected();
+  if (CLI_BRAINS.has(chosen) || chosen === 'cli') {
+    runCliChat({ workspaceId, prompt, cli: chosen === 'cli' ? 'claude-code' : chosen }).catch(() => {});
   } else {
     const policy = { role, runtimeMode, enabledRestricted };
-    runAgent({ workspaceId, prompt, providerName: provider, policy }).catch(() => {});
+    runAgent({ workspaceId, prompt, providerName: chosen, policy }).catch(() => {});
   }
   res.json({ ok: true, workspaceId });
+});
+
+// --- Provider settings (Settings page) ---
+// GET status (never returns raw keys). CLI brains listed separately.
+app.get('/api/providers', (_req, res) => {
+  res.json({
+    ...providerStatus(),
+    cliBrains: [...CLI_BRAINS],
+    selected: getSelected()
+  });
+});
+
+// Save an API key / model and/or select a provider.
+app.post('/api/providers', (req, res) => {
+  const { provider, apiKey, model, baseUrl, select } = req.body || {};
+  if (!provider) return res.status(400).json({ error: 'provider required' });
+  if (apiKey !== undefined || model || baseUrl) setProviderConfig(provider, { apiKey, model, baseUrl });
+  if (select) setSelected(provider);
+  res.json({ ok: true, ...providerStatus() });
+});
+
+// Test connection. CLI brains -> check the binary via the connector. API providers -> tiny chat call.
+app.post('/api/providers/test', async (req, res) => {
+  const { provider, apiKey, model, workspaceId = WS } = req.body || {};
+  if (!provider) return res.status(400).json({ error: 'provider required' });
+  try {
+    if (CLI_BRAINS.has(provider)) {
+      const r = await invokeConnector(workspaceId, 'agent.cli_check', { cli: provider });
+      return res.json(r.ok ? { ok: true, detail: r.version || 'installed' } : { ok: false, error: r.error || 'not found' });
+    }
+    if (provider === 'mock') return res.json({ ok: true, detail: 'offline mock' });
+    if (provider === 'ollama') {
+      const base = (process.env.OLLAMA_URL || 'http://127.0.0.1:11434');
+      const r = await fetch(base + '/api/tags').catch(() => null);
+      return res.json(r && r.ok ? { ok: true, detail: 'ollama reachable' } : { ok: false, error: 'ollama not reachable' });
+    }
+    // claude / openai / gemini: minimal ping using the submitted-or-stored key
+    const cfg = getProviderConfig(provider);
+    const out = await getProvider(provider).chat({
+      system: 'Reply with the single word OK.',
+      messages: [{ role: 'user', text: 'ping' }], tools: [],
+      apiKey: apiKey || cfg.apiKey, model: model || cfg.model, baseUrl: cfg.baseUrl
+    });
+    res.json({ ok: true, detail: (out.text || '').slice(0, 40) || 'responded' });
+  } catch (e) {
+    res.json({ ok: false, error: e.message });
+  }
 });
 
 // Live event stream to the browser (SSE).

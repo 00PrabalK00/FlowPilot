@@ -8,6 +8,7 @@ import { getProvider } from '../providers/index.js';
 import { publish } from '../eventBus.js';
 import { Runs, ToolCalls, Approvals, audit } from '../store.js';
 import { redactObject } from '../redact.js';
+import { getProviderConfig } from '../secretStore.js';
 
 const SYSTEM = `You are FlowPilot, a guarded operator for Node-RED.
 You do NOT own Node-RED — you propose actions that the permission engine and the user approve.
@@ -46,10 +47,11 @@ export async function runAgent({ workspaceId, prompt, providerName, policy = {},
   const tools = toolSpecsForModel();
   const messages = [{ role: 'user', text: prompt }];
   const MAX_STEPS = 16;
+  const cfg = getProviderConfig(provider.name); // { apiKey, model, baseUrl } from secrets/ or env
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
-      const { text, toolCalls } = await provider.chat({ system: SYSTEM, messages, tools });
+      const { text, toolCalls } = await provider.chat({ system: SYSTEM, messages, tools, ...cfg });
       messages.push({ role: 'assistant', text, toolCalls });
       if (text) emit(makeEvent(EventType.AGENT_MESSAGE, { text }));
 

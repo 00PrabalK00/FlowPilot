@@ -2,12 +2,12 @@
 const API = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-4-8';
 
-export async function claudeChat({ system, messages, tools }) {
-  const key = process.env.ANTHROPIC_API_KEY;
+export async function claudeChat({ system, messages, tools, apiKey, model }) {
+  const key = apiKey || process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error('ANTHROPIC_API_KEY not set');
 
   const body = {
-    model: MODEL,
+    model: model || MODEL,
     max_tokens: 4096,
     system,
     messages: messages.map(toAnthropic),

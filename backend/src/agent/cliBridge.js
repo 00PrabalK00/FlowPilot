@@ -14,8 +14,8 @@ export async function runCliChat({ workspaceId, prompt, cli = 'claude-code' }) {
   audit(workspaceId, 'cli-brain', 'run.start', { runId, cli, prompt: prompt.slice(0, 200) });
 
   try {
-    // long timeout: Claude Code may take a while + call several tools
-    const res = await invokeConnector(workspaceId, 'agent.run_claude_code', { prompt }, 290000);
+    // long timeout: the CLI may take a while + call several tools
+    const res = await invokeConnector(workspaceId, 'agent.run_cli', { cli, prompt }, 290000);
     const text = res?.text || '(no response)';
     emit(makeEvent(EventType.AGENT_MESSAGE, { text }));
     emit(makeEvent(EventType.AGENT_DONE, { text }));
