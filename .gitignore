@@ -6,3 +6,11 @@ backend/data/*.db-*
 *.log
 .DS_Store
 .env
+.env.*
+!.env.example
+# ALL secrets live here — never committed
+secrets/
+**/secrets/
+*.key
+*.pem
+credentials.json

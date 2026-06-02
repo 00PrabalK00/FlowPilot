@@ -7,11 +7,14 @@
     "shared",
     "connector",
     "backend",
-    "frontend"
+    "frontend",
+    "mcp"
   ],
   "scripts": {
     "dev": "concurrently -k -n nodered,backend,connector,frontend -c green,cyan,magenta,yellow \"npm:dev:nodered\" \"npm:dev:backend\" \"npm:dev:connector\" \"npm:dev:frontend\"",
     "stop": "node scripts/stop.mjs",
+    "mcp:register": "node scripts/register-mcp.mjs",
+    "mcp": "node mcp/src/server.js",
     "dev:nodered": "node scripts/run-nodered.mjs",
     "dev:backend": "npm --workspace backend run dev",
     "dev:connector": "npm --workspace connector run dev",

@@ -56,8 +56,30 @@ Set env on the backend:
 | OpenAI / compatible | `FLOWPILOT_PROVIDER=openai OPENAI_API_KEY=...` |
 | Local Ollama | `FLOWPILOT_PROVIDER=ollama OLLAMA_MODEL=llama3.1` |
 
-Keys live **server-side only** (Threat 8). Cloud providers receive **redacted** tool results
-(secrets/IPs/emails/JWTs stripped — Threat 2 & 7); local/mock get raw context.
+Keys live **server-side only** (Threat 8) in the **gitignored `secrets/` folder** (or `backend/.env`,
+also gitignored). Nothing secret is ever committed or returned over the API. Cloud providers receive
+**redacted** tool results (secrets/IPs/emails/JWTs stripped — Threat 2 & 7); local/mock get raw context.
+
+### Recommended: no keys — bridge your logged-in CLI via MCP
+
+Don't want to paste keys? Use the Claude Code / Codex / Gemini CLI you're **already logged into** as the
+brain. FlowPilot ships an **MCP server** that exposes its guarded Node-RED tools, so your CLI drives
+Node-RED agentically — "like giving Claude Code a tool". No API keys; uses your existing subscription.
+
+```bash
+npm run dev            # start the stack first (backend must be up)
+npm run mcp:register   # auto-adds to Claude Code; prints Codex/Gemini config to paste
+```
+
+Then open your CLI in this project and say: *"read my Node-RED flows"* or *"build a robot task queue flow"*.
+Tool calls flow through the same permission engine + safe-deploy pipeline; your CLI's own per-tool
+approval is the human-in-the-loop. Live activity still shows in the FlowPilot web UI, and flows render
+in the **real Node-RED editor at http://localhost:1880** — so the web UI is optional, not a second place
+you're forced to work.
+
+- `FLOWPILOT_ROLE` (default `maintainer`) sets what risk level the CLI may reach.
+- Restricted tools (shell/file) stay hidden unless `FLOWPILOT_ENABLE_RESTRICTED=tool.name,...`.
+- Test the bridge without a CLI: `node mcp/src/server.js` (stdio).
 
 ## What's implemented (maps to the spec)
 

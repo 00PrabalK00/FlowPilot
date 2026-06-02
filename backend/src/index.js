@@ -7,8 +7,11 @@ import './db.js';
 import { authConnector, registerConnector, isOnline, connectorInfo } from './connectorHub.js';
 import { subscribe } from './eventBus.js';
 import { runAgent, resolveApproval } from './agent/orchestrator.js';
-import { Snapshots, Drafts, Approvals } from './store.js';
+import { Snapshots, Drafts, Approvals, ToolCalls, audit } from './store.js';
 import { dispatchTool } from './tools/dispatch.js';
+import { evaluate, Decision } from './permission.js';
+import { EventType, makeEvent } from '@flowpilot/shared/events';
+import { TOOLS } from '@flowpilot/shared/tools';
 
 const PORT = process.env.PORT || 8787;
 const app = express();
@@ -65,6 +68,36 @@ app.get('/api/drafts/:id', (req, res) => {
 
 import { publish } from './eventBus.js';
 function makeEmit(ws) { return (e) => publish(ws, e); }
+
+// --- MCP bridge: lets a logged-in CLI (Claude Code / Codex / Gemini) call FlowPilot tools ---
+// Tool catalog for the MCP server to advertise.
+app.get('/api/tools', (_req, res) => {
+  res.json(Object.entries(TOOLS).map(([name, t]) => ({ name, desc: t.desc, params: t.params, perm: t.perm, risk: t.risk })));
+});
+
+// Run a single guarded tool. Permission engine still enforces role/risk.
+// The CLI itself is the human-in-the-loop approval (it prompts before each tool use).
+app.post('/api/tool', async (req, res) => {
+  const { tool, params = {}, role = 'maintainer', runtimeMode = 'design', enabledRestricted = [], workspaceId = WS } = req.body || {};
+  if (!tool) return res.status(400).json({ error: 'tool required' });
+  const dec = evaluate(tool, { role, runtimeMode, enabledRestricted });
+  if (dec.decision === Decision.DENY) return res.status(403).json({ error: 'denied by policy', reason: dec.reason });
+
+  const emit = (e) => publish(workspaceId, e);
+  const ctx = { workspaceId, runId: null, prompt: '(cli-mcp)', emit };
+  emit(makeEvent(EventType.TOOL_CALLED, { tool, params, risk: dec.risk, via: 'cli-mcp' }));
+  try {
+    const result = await dispatchTool(ctx, tool, params);
+    ToolCalls.record(null, workspaceId, tool, params, true, result, null);
+    audit(workspaceId, 'cli-mcp', 'tool', { tool, risk: dec.risk });
+    emit(makeEvent(EventType.TOOL_COMPLETED, { tool, via: 'cli-mcp', summary: 'ok' }));
+    res.json({ ok: true, result });
+  } catch (e) {
+    ToolCalls.record(null, workspaceId, tool, params, false, null, e.message);
+    emit(makeEvent(EventType.TOOL_FAILED, { tool, error: e.message }));
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
